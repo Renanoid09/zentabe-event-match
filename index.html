@@ -1037,19 +1037,45 @@
     }
 
     /* ---------------- actions ---------------- */
-    // Per-tab session bookkeeping: remembers which player id this browser
-    // tab already used to join a given room code, so a retried/duplicated
-    // join submission (double-click, slow network, accidental resubmit)
-    // reconnects as the same player instead of adding a second copy.
+    // Player-id bookkeeping, keyed by room code. Uses localStorage (not
+    // sessionStorage) so it survives closing and reopening the tab, not
+    // just an in-tab refresh — this is what lets a rejoin/reconnect find
+    // the same player slot again later. It also still covers the original
+    // case of a retried/duplicated join submission (double-click, slow
+    // network, accidental resubmit) reconnecting as the same player
+    // instead of adding a second copy.
     function playerSessionKey(code) { return `loadoutDrawPlayer:${code}`; }
     function getStoredPlayerId(code) {
-      try { return sessionStorage.getItem(playerSessionKey(code)); } catch (e) { return null; }
+      try { return localStorage.getItem(playerSessionKey(code)); } catch (e) { return null; }
     }
     function setStoredPlayerId(code, id) {
-      try { sessionStorage.setItem(playerSessionKey(code), id); } catch (e) { /* ignore */ }
+      try { localStorage.setItem(playerSessionKey(code), id); } catch (e) { /* ignore */ }
     }
     function clearStoredPlayerId(code) {
-      try { sessionStorage.removeItem(playerSessionKey(code)); } catch (e) { /* ignore */ }
+      try { localStorage.removeItem(playerSessionKey(code)); } catch (e) { /* ignore */ }
+    }
+
+    // Tracks which room this browser is currently "in", so a page load with
+    // no other context knows which room to try to reconnect to. Stored in
+    // both sessionStorage (so a plain refresh in this exact tab always wins,
+    // even if other tabs are in different rooms) and localStorage (so a
+    // freshly reopened tab, which has no sessionStorage, can still fall back
+    // to the last room this browser was active in).
+    const ACTIVE_ROOM_KEY = "loadoutDrawActiveRoom";
+    function setActiveRoomCode(code) {
+      try { sessionStorage.setItem(ACTIVE_ROOM_KEY, code); } catch (e) { /* ignore */ }
+      try { localStorage.setItem(ACTIVE_ROOM_KEY, code); } catch (e) { /* ignore */ }
+    }
+    function getActiveRoomCode() {
+      try {
+        const fromTab = sessionStorage.getItem(ACTIVE_ROOM_KEY);
+        if (fromTab) return fromTab;
+      } catch (e) { /* ignore */ }
+      try { return localStorage.getItem(ACTIVE_ROOM_KEY); } catch (e) { return null; }
+    }
+    function clearActiveRoomCode() {
+      try { sessionStorage.removeItem(ACTIVE_ROOM_KEY); } catch (e) { /* ignore */ }
+      try { localStorage.removeItem(ACTIVE_ROOM_KEY); } catch (e) { /* ignore */ }
     }
 
     async function createRoom() {
@@ -1077,6 +1103,7 @@
         const ok = await writeRoom(room);
         if (!ok) { local.error = t('errCreateFail'); return; }
         setStoredPlayerId(code, id);
+        setActiveRoomCode(code);
         local.playerId = id;
         local.roomCode = code;
         local.isHost = true;
@@ -1120,6 +1147,7 @@
           if (!ok) { local.error = t('errJoinFail'); return; }
         }
         setStoredPlayerId(code, id);
+        setActiveRoomCode(code);
         local.playerId = id;
         local.roomCode = code;
         local.isHost = false;
@@ -1321,6 +1349,7 @@
       if (local.pollTimer) clearInterval(local.pollTimer);
       local.pollTimer = null;
       if (local.roomCode) clearStoredPlayerId(local.roomCode);
+      clearActiveRoomCode();
       local.screen = "landing";
       local.tab = "create";
       local.room = null;
@@ -1687,7 +1716,57 @@
       }[s]));
     }
 
-    render();
+    // Runs once on page load. If this browser was previously in a room
+    // (tracked via getActiveRoomCode/getStoredPlayerId), try to silently
+    // reconnect to it before showing the landing screen — this is what
+    // makes a refresh or a reopened tab drop the player straight back into
+    // their lobby instead of making them re-enter their nickname and code.
+    async function attemptRejoin() {
+      const code = getActiveRoomCode();
+      if (!code) { render(); return; }
+      const storedId = getStoredPlayerId(code);
+      if (!storedId) { clearActiveRoomCode(); render(); return; }
+
+      // Show the existing "Loading room…" screen while we check the server.
+      local.screen = "in-room";
+      local.roomCode = code;
+      local.room = null;
+      render();
+
+      const room = await readRoom(code);
+      if (!room) {
+        // Room no longer exists on the server (e.g. the host's lobby is
+        // gone / it expired) — nothing to rejoin, so go back to landing.
+        clearStoredPlayerId(code);
+        clearActiveRoomCode();
+        local.screen = "landing";
+        local.roomCode = null;
+        render();
+        return;
+      }
+
+      const player = room.players.find(p => p.id === storedId);
+      if (!player) {
+        // We're no longer part of this room (removed, or it was reset).
+        clearStoredPlayerId(code);
+        clearActiveRoomCode();
+        local.screen = "landing";
+        local.roomCode = null;
+        render();
+        return;
+      }
+
+      local.playerId = storedId;
+      local.roomCode = code;
+      local.isHost = room.hostId === storedId;
+      local.room = room;
+      local.nickname = player.nickname;
+      local.error = "";
+      startPolling();
+      render();
+    }
+
+    attemptRejoin();
   </script>
 </body>
 
