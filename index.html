@@ -544,12 +544,18 @@
       font-family: 'Oswald', sans-serif;
       font-weight: 500;
       font-size: 15px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .pr-sub {
       font-size: 12px;
       color: var(--paper-dim);
       margin-left: auto;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
     }
 
     .side-tag {
@@ -2098,10 +2104,7 @@
     function renderResult() {
       const r = local.room.result;
 
-      const sideCounts = {};
-      r.players.forEach(p => { if (p.side) sideCounts[p.side] = (sideCounts[p.side] || 0) + 1; });
-      const sideEnabled = Object.keys(sideCounts).length > 0;
-      const sideSummary = Object.entries(sideCounts).map(([side, n]) => `${n} ${translateOption("side", null, side)}`).join(" · ");
+      const sideEnabled = r.players.some(p => p.side);
 
       let resultsHtml;
       if (sideEnabled) {
@@ -2127,12 +2130,11 @@
       }
 
       return `
-    ${r.map || sideEnabled ? `
+    ${r.map ? `
     <div class="ticket">
       <h3 class="result-heading">${t('resultIsIn')}</h3>
-      <div class="ticket-rows" style="grid-template-columns: repeat(${r.map && sideEnabled ? 2 : 1}, 1fr);">
-        ${sideEnabled ? `<div class="ticket-item" ${!r.map ? 'style="border-left:none; padding-left:0;"' : ""}><div class="tag">${t('teams')}</div><div class="val" style="font-size:17px;">${escapeHtml(sideSummary)}</div></div>` : ""}
-        ${r.map ? `<div class="ticket-item" ${!sideEnabled ? 'style="border-left:none; padding-left:0;"' : ""}><div class="tag">${t('map')}</div><div class="val">${optionIcon("map", null, r.map)}${escapeHtml(translateOption("map", null, r.map))}</div></div>` : ""}
+      <div class="ticket-rows" style="grid-template-columns: 1fr;">
+        <div class="ticket-item" style="border-left:none; padding-left:0;"><div class="tag">${t('map')}</div><div class="val">${optionIcon("map", null, r.map)}${escapeHtml(translateOption("map", null, r.map))}</div></div>
       </div>
     </div>
     ` : `<h3 class="result-heading">${t('resultIsIn')}</h3>`}
