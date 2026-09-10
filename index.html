@@ -321,8 +321,10 @@ const local = {
 /* ---------------- storage helpers ---------------- */
 async function readRoom(code){
   try{
-    const res = await window.storage.get(roomKey(code), true);
-    return res ? JSON.parse(res.value) : null;
+    const res = await fetch(`/api/room?code=${encodeURIComponent(code)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.room || null;
   }catch(e){
     return null;
   }
@@ -330,8 +332,12 @@ async function readRoom(code){
 async function writeRoom(room){
   room.updatedAt = Date.now();
   try{
-    await window.storage.set(roomKey(room.code), JSON.stringify(room), true);
-    return true;
+    const res = await fetch(`/api/room`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(room)
+    });
+    return res.ok;
   }catch(e){
     return false;
   }
