@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Loadout Draw — Room</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+:root{
+  --ink: #0E1013;
+  --panel: #16191D;
+  --panel-raised: #1D2126;
+  --line: #2B3038;
+  --paper: #ECE8E1;
+  --paper-dim: #8B9096;
+  --red: #FF4655;
+  --red-dim: #6B2229;
+  --teal: #5FA8A0;
+}
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; }
+
+body{
+  background: var(--ink);
+  color: var(--paper);
+  font-family: 'Rajdhani', sans-serif;
+  min-height: 100vh;
+  padding: 28px 16px 60px;
+}
+
+.wrap{ max-width: 760px; margin: 0 auto; }
+
+h1,h2,h3{ font-family:'Oswald', sans-serif; font-weight:600; margin:0; }
+
+.masthead{
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+.masthead h1{ font-size: clamp(26px, 5vw, 36px); letter-spacing:0.5px; }
+.masthead h1 span{ color: var(--red); }
+.masthead p{ color: var(--paper-dim); margin: 6px 0 0; font-size: 14px; }
+
+/* ---- generic panel ---- */
+.panel{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 22px;
+  margin-bottom: 16px;
+  position: relative;
+}
+.panel::before{
+  content:"";
+  position:absolute; top:0; left:0; width:4px; height:100%;
+  background: var(--accent, var(--red));
+}
+
+.field{ margin-bottom: 14px; }
+.field label{
+  display:block;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--paper-dim);
+  margin-bottom: 6px;
+}
+.field input, .field select{
+  width:100%;
+  background: var(--ink);
+  border: 1px solid var(--line);
+  color: var(--paper);
+  font-family:'Rajdhani', sans-serif;
+  font-size: 16px;
+  font-weight:600;
+  padding: 10px 12px;
+}
+.field input:focus, .field select:focus{ outline:none; border-color: var(--red); }
+
+.btn{
+  font-family:'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  border: none;
+  padding: 12px 20px;
+  cursor: pointer;
+  color: var(--ink);
+  background: var(--red);
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+.btn:hover{ background:#ff5d6a; }
+.btn:disabled{ background: var(--line); color: var(--paper-dim); cursor: not-allowed; }
+.btn.secondary{
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--paper);
+  clip-path:none;
+}
+.btn.secondary:hover{ border-color: var(--red); color: var(--red); }
+.btn.ghost{
+  background: transparent;
+  border: none;
+  color: var(--paper-dim);
+  clip-path:none;
+  text-decoration: underline;
+  font-family:'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 6px 0;
+}
+.btn.ghost:hover{ color: var(--paper); }
+
+.row{ display:flex; gap:10px; flex-wrap:wrap; }
+.row > *{ flex: 1; }
+
+.error{
+  color: var(--red);
+  font-size: 14px;
+  margin-top: 8px;
+}
+.hint{ color: var(--paper-dim); font-size: 13px; margin-top: 10px; }
+
+/* ---- landing tabs ---- */
+.tabs{ display:flex; gap:10px; margin-bottom: 18px; }
+.tab-btn{
+  flex:1;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--paper-dim);
+  font-family:'Oswald', sans-serif;
+  font-weight:600;
+  font-size: 14px;
+  padding: 12px;
+  cursor:pointer;
+  letter-spacing: 0.5px;
+}
+.tab-btn.active{ border-color: var(--red); color: var(--paper); background: var(--panel-raised); }
+
+/* ---- room code display ---- */
+.code-display{
+  display:flex; align-items:center; justify-content:space-between;
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+  padding: 16px 20px;
+  margin-bottom: 18px;
+}
+.code-display .code{
+  font-family:'Oswald', sans-serif;
+  font-size: 30px;
+  letter-spacing: 6px;
+  font-weight: 600;
+}
+.code-display .code-label{ font-size:12px; color:var(--paper-dim); letter-spacing:1px; }
+
+/* ---- player grid ---- */
+.player-grid{
+  display:grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+}
+@media (max-width:560px){ .player-grid{ grid-template-columns: repeat(2, 1fr); } }
+
+.slot{
+  border: 1px solid var(--line);
+  padding: 10px 8px;
+  text-align:center;
+  font-size: 13px;
+  min-height: 52px;
+  display:flex; align-items:center; justify-content:center;
+  background: var(--panel-raised);
+}
+.slot.filled{ border-color: var(--teal); color: var(--paper); font-weight:600; }
+.slot.host-slot{ border-color: var(--red); }
+.slot.empty{ color: var(--line); }
+
+.progress-label{ font-size:14px; color: var(--paper-dim); margin-bottom: 4px; }
+
+/* ---- config rows ---- */
+.config-row{
+  display:grid;
+  grid-template-columns: 100px 1fr 1fr;
+  gap: 10px;
+  align-items:center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.config-row:last-child{ border-bottom:none; }
+@media (max-width:600px){
+  .config-row{ grid-template-columns: 1fr; }
+}
+.config-row .cat-name{
+  font-family:'Oswald', sans-serif;
+  font-weight:600;
+  font-size: 15px;
+}
+.mini-toggle{ display:flex; border: 1px solid var(--line); overflow:hidden; }
+.mini-toggle button{
+  flex:1;
+  background: transparent; border:none; color: var(--paper-dim);
+  font-family:'Rajdhani', sans-serif; font-weight:600; font-size:12px;
+  padding: 7px 6px; cursor:pointer;
+}
+.mini-toggle button.active{ background: var(--teal); color: var(--ink); }
+
+.waiting-box{
+  text-align:center;
+  padding: 30px 10px;
+  color: var(--paper-dim);
+}
+.waiting-box .pulse{
+  width:10px; height:10px; border-radius:50%;
+  background: var(--red);
+  display:inline-block;
+  margin-right: 8px;
+  animation: pulse 1.2s infinite ease-in-out;
+}
+@keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:0.25;} }
+
+.readonly-config{ font-size: 14px; color: var(--paper-dim); }
+.readonly-config div{ padding: 6px 0; border-bottom: 1px solid var(--line); display:flex; justify-content:space-between; }
+.readonly-config div:last-child{ border-bottom:none; }
+.readonly-config .v{ color: var(--paper); font-weight:600; }
+
+/* ---- result ticket ---- */
+.ticket{
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+  padding: 26px 22px;
+}
+.ticket-rows{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:0;
+  margin-top: 10px;
+}
+@media (max-width:620px){ .ticket-rows{ grid-template-columns: repeat(2, 1fr); } }
+.ticket-item{ padding: 10px 16px; border-left: 1px solid var(--line); }
+.ticket-item:first-child{ border-left:none; padding-left:0; }
+@media (max-width:620px){
+  .ticket-item:nth-child(odd){ border-left:none; padding-left:0; }
+}
+.ticket-item .tag{ font-size:12px; color: var(--paper-dim); letter-spacing:1px; margin-bottom:4px; }
+.ticket-item .val{ font-family:'Oswald', sans-serif; font-size: 22px; font-weight:500; }
+.ticket-item .sub{ font-size: 13px; color: var(--paper-dim); margin-top: 2px; }
+
+.small-note{ font-size:12px; color: var(--line); text-align:center; margin-top: 24px; }
+
+.you-tag{
+  display:inline-block;
+  font-size: 10px;
+  color: var(--red);
+  border: 1px solid var(--red);
+  padding: 1px 5px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+/* ---------------- data ---------------- */
+const DATA = {
+  sides: ["Attacker", "Defender"],
+  maps: ["Ascent","Bind","Haven","Split","Icebox","Breeze","Fracture","Pearl","Lotus","Sunset","Abyss","Corrode"],
+  roles: {
+    "Duelist":   ["Jett","Phoenix","Reyna","Raze","Yoru","Neon","Iso","Waylay"],
+    "Initiator": ["Sova","Breach","Skye","KAY/O","Fade","Gekko","Tejo"],
+    "Controller":["Brimstone","Viper","Omen","Astra","Harbor","Clove"],
+    "Sentinel":  ["Killjoy","Cypher","Sage","Chamber","Deadlock","Vyse"]
+  },
+  weaponTypes: {
+    "Sidearm":       ["Classic","Shorty","Frenzy","Ghost","Sheriff"],
+    "SMG":           ["Stinger","Spectre"],
+    "Shotgun":       ["Bucky","Judge"],
+    "Rifle":         ["Bulldog","Guardian","Phantom","Vandal"],
+    "Sniper Rifle":  ["Marshal","Outlaw","Operator"],
+    "Machine Gun":   ["Ares","Odin"]
+  }
+};
+const AGENT_ROLE = {};
+Object.entries(DATA.roles).forEach(([role, agents]) => agents.forEach(a => AGENT_ROLE[a] = role));
+const WEAPON_TYPE = {};
+Object.entries(DATA.weaponTypes).forEach(([type, weapons]) => weapons.forEach(w => WEAPON_TYPE[w] = type));
+const ALL_AGENTS = Object.keys(AGENT_ROLE);
+const ALL_WEAPONS = Object.keys(WEAPON_TYPE);
+const MAX_PLAYERS = 10;
+
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function roomKey(code){ return "room:" + code; }
+function genCode(){
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let s = "";
+  for (let i=0;i<5;i++) s += chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+function defaultConfig(){
+  return {
+    side:   { mode: "random", value: null },
+    role:   { mode: "random", subMode: "role", value: null },
+    weapon: { mode: "random", subMode: "type", value: null },
+    map:    { mode: "random", value: null }
+  };
+}
+
+/* ---------------- local (in-memory) state ---------------- */
+const local = {
+  screen: "landing",      // landing | in-room
+  tab: "create",          // create | join
+  nickname: "",
+  joinCode: "",
+  playerId: null,
+  roomCode: null,
+  isHost: false,
+  room: null,
+  error: "",
+  pollTimer: null
+};
+
+/* ---------------- storage helpers ---------------- */
+async function readRoom(code){
+  try{
+    const res = await window.storage.get(roomKey(code), true);
+    return res ? JSON.parse(res.value) : null;
+  }catch(e){
+    return null;
+  }
+}
+async function writeRoom(room){
+  room.updatedAt = Date.now();
+  try{
+    await window.storage.set(roomKey(room.code), JSON.stringify(room), true);
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+/* ---------------- actions ---------------- */
+async function createRoom(){
+  const nickname = local.nickname.trim();
+  if (!nickname){ local.error = "Enter a nickname first."; render(); return; }
+  const id = crypto.randomUUID();
+  const code = genCode();
+  const room = {
+    code,
+    hostId: id,
+    createdAt: Date.now(),
+    players: [{ id, nickname }],
+    phase: "lobby",
+    config: defaultConfig(),
+    result: null
+  };
+  const ok = await writeRoom(room);
+  if (!ok){ local.error = "Couldn't create the room. Try again."; render(); return; }
+  local.playerId = id;
+  local.roomCode = code;
+  local.isHost = true;
+  local.room = room;
+  local.screen = "in-room";
+  local.error = "";
+  startPolling();
+  render();
+}
+
+async function joinRoom(){
+  const nickname = local.nickname.trim();
+  const code = local.joinCode.trim().toUpperCase();
+  if (!nickname){ local.error = "Enter a nickname first."; render(); return; }
+  if (!code){ local.error = "Enter a room code."; render(); return; }
+  const room = await readRoom(code);
+  if (!room){ local.error = "No room found with that code."; render(); return; }
+  if (room.phase !== "lobby"){ local.error = "That room has already started."; render(); return; }
+  if (room.players.length >= MAX_PLAYERS){ local.error = "That room is full."; render(); return; }
+  const id = crypto.randomUUID();
+  room.players.push({ id, nickname });
+  const ok = await writeRoom(room);
+  if (!ok){ local.error = "Couldn't join the room. Try again."; render(); return; }
+  local.playerId = id;
+  local.roomCode = code;
+  local.isHost = false;
+  local.room = room;
+  local.screen = "in-room";
+  local.error = "";
+  startPolling();
+  render();
+}
+
+async function refreshRoom(){
+  if (!local.roomCode) return;
+  const room = await readRoom(local.roomCode);
+  if (room) local.room = room;
+}
+
+function startPolling(){
+  if (local.pollTimer) clearInterval(local.pollTimer);
+  local.pollTimer = setInterval(async () => {
+    await refreshRoom();
+    render();
+  }, 1800);
+}
+
+async function goToConfig(){
+  if (!local.isHost) return;
+  const room = local.room;
+  room.phase = "configuring";
+  await writeRoom(room);
+  local.room = room;
+  render();
+}
+
+async function updateConfigMode(category, mode){
+  const room = local.room;
+  room.config[category].mode = mode;
+  await writeRoom(room);
+  local.room = room;
+  render();
+}
+
+async function updateConfigSubMode(category, subMode){
+  const room = local.room;
+  room.config[category].subMode = subMode;
+  room.config[category].value = null;
+  await writeRoom(room);
+  local.room = room;
+  render();
+}
+
+async function updateConfigValue(category, value){
+  const room = local.room;
+  room.config[category].value = value;
+  await writeRoom(room);
+  local.room = room;
+  render();
+}
+
+function rollResult(config){
+  const result = {};
+
+  result.side = config.side.mode === "manual" && config.side.value
+    ? config.side.value
+    : pick(DATA.sides);
+
+  if (config.role.mode === "manual" && config.role.value){
+    if (config.role.subMode === "agent"){
+      result.role = config.role.value;
+      result.roleSub = AGENT_ROLE[config.role.value];
+    } else {
+      result.role = config.role.value;
+      result.roleSub = "Any agent in this role";
+    }
+  } else if (config.role.subMode === "agent"){
+    const agent = pick(ALL_AGENTS);
+    result.role = agent; result.roleSub = AGENT_ROLE[agent];
+  } else {
+    const role = pick(Object.keys(DATA.roles));
+    result.role = role; result.roleSub = "Any agent in this role";
+  }
+
+  if (config.weapon.mode === "manual" && config.weapon.value){
+    if (config.weapon.subMode === "weapon"){
+      result.weapon = config.weapon.value;
+      result.weaponSub = WEAPON_TYPE[config.weapon.value];
+    } else {
+      result.weapon = config.weapon.value;
+      result.weaponSub = "Any weapon of this type";
+    }
+  } else if (config.weapon.subMode === "weapon"){
+    const w = pick(ALL_WEAPONS);
+    result.weapon = w; result.weaponSub = WEAPON_TYPE[w];
+  } else {
+    const t = pick(Object.keys(DATA.weaponTypes));
+    result.weapon = t; result.weaponSub = "Any weapon of this type";
+  }
+
+  result.map = config.map.mode === "manual" && config.map.value
+    ? config.map.value
+    : pick(DATA.maps);
+
+  return result;
+}
+
+async function doRandomize(){
+  if (!local.isHost) return;
+  const room = local.room;
+  room.result = rollResult(room.config);
+  room.phase = "result";
+  await writeRoom(room);
+  local.room = room;
+  render();
+}
+
+async function backToConfig(){
+  if (!local.isHost) return;
+  const room = local.room;
+  room.phase = "configuring";
+  await writeRoom(room);
+  local.room = room;
+  render();
+}
+
+function leaveRoom(){
+  if (local.pollTimer) clearInterval(local.pollTimer);
+  local.pollTimer = null;
+  local.screen = "landing";
+  local.tab = "create";
+  local.room = null;
+  local.roomCode = null;
+  local.playerId = null;
+  local.isHost = false;
+  local.error = "";
+  local.nickname = "";
+  local.joinCode = "";
+  render();
+}
+
+/* ---------------- rendering ---------------- */
+function render(){
+  const app = document.getElementById("app");
+  if (local.screen === "landing"){
+    app.innerHTML = renderLanding();
+    bindLanding();
+    return;
+  }
+  if (!local.room){
+    app.innerHTML = `<div class="masthead"><h1>LOADOUT <span>DRAW</span></h1></div><p class="hint">Loading room…</p>`;
+    return;
+  }
+  const phase = local.room.phase;
+  let body = "";
+  if (phase === "lobby") body = renderLobby();
+  else if (phase === "configuring") body = renderConfig();
+  else if (phase === "result") body = renderResult();
+
+  app.innerHTML = `
+    <div class="masthead">
+      <h1>LOADOUT <span>DRAW</span></h1>
+      <p>Room <strong style="color:var(--paper)">${local.room.code}</strong> · ${local.room.players.length}/${MAX_PLAYERS} players ${local.isHost ? "· you are the host" : ""}</p>
+    </div>
+    ${body}
+    <button class="btn ghost" id="leaveBtn">Leave room</button>
+  `;
+  document.getElementById("leaveBtn").addEventListener("click", leaveRoom);
+  bindPhase(phase);
+}
+
+function renderLanding(){
+  return `
+    <div class="masthead">
+      <h1>LOADOUT <span>DRAW</span></h1>
+      <p>Create a room and share the code, or join one your host gave you.</p>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn ${local.tab === "create" ? "active" : ""}" data-tab="create">Create room</button>
+      <button class="tab-btn ${local.tab === "join" ? "active" : ""}" data-tab="join">Join room</button>
+    </div>
+    <div class="panel" style="--accent:var(--red)">
+      ${local.tab === "create" ? `
+        <div class="field">
+          <label>Your nickname</label>
+          <input id="nickInput" type="text" maxlength="20" placeholder="e.g. Jett_Main" value="${escapeHtml(local.nickname)}">
+        </div>
+        <button class="btn" id="createBtn">Create room</button>
+      ` : `
+        <div class="field">
+          <label>Room code</label>
+          <input id="codeInput" type="text" maxlength="5" placeholder="ABCDE" value="${escapeHtml(local.joinCode)}" style="text-transform:uppercase; letter-spacing:3px;">
+        </div>
+        <div class="field">
+          <label>Your nickname</label>
+          <input id="nickInput" type="text" maxlength="20" placeholder="e.g. Jett_Main" value="${escapeHtml(local.nickname)}">
+        </div>
+        <button class="btn" id="joinBtn">Join room</button>
+      `}
+      ${local.error ? `<div class="error">${escapeHtml(local.error)}</div>` : ""}
+    </div>
+  `;
+}
+
+function bindLanding(){
+  document.querySelectorAll(".tab-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{ local.tab = btn.dataset.tab; local.error=""; render(); });
+  });
+  const nickInput = document.getElementById("nickInput");
+  if (nickInput) nickInput.addEventListener("input", e => local.nickname = e.target.value);
+  const codeInput = document.getElementById("codeInput");
+  if (codeInput) codeInput.addEventListener("input", e => local.joinCode = e.target.value.toUpperCase());
+  const createBtn = document.getElementById("createBtn");
+  if (createBtn) createBtn.addEventListener("click", createRoom);
+  const joinBtn = document.getElementById("joinBtn");
+  if (joinBtn) joinBtn.addEventListener("click", joinRoom);
+}
+
+function renderLobby(){
+  const room = local.room;
+  const slots = [];
+  for (let i=0;i<MAX_PLAYERS;i++){
+    const p = room.players[i];
+    if (p){
+      const isHostSlot = p.id === room.hostId;
+      const isYou = p.id === local.playerId;
+      slots.push(`<div class="slot filled ${isHostSlot ? "host-slot":""}">${escapeHtml(p.nickname)}${isHostSlot ? " ★" : ""}${isYou ? '<span class="you-tag">YOU</span>' : ""}</div>`);
+    } else {
+      slots.push(`<div class="slot empty">Open</div>`);
+    }
+  }
+  const full = room.players.length >= MAX_PLAYERS;
+
+  return `
+    <div class="code-display">
+      <div><div class="code-label">ROOM CODE — SHARE THIS</div><div class="code">${room.code}</div></div>
+    </div>
+    <div class="panel" style="--accent:var(--teal)">
+      <div class="progress-label">${room.players.length} / ${MAX_PLAYERS} joined</div>
+      <div class="player-grid">${slots.join("")}</div>
+      ${local.isHost ? `
+        <button class="btn" id="configBtn" ${full ? "" : "disabled"}>
+          ${full ? "Set up randomizer" : `Waiting for ${MAX_PLAYERS - room.players.length} more`}
+        </button>
+        ${!full && room.players.length >= 2 ? `<div><button class="btn ghost" id="skipBtn">Start now with ${room.players.length} players instead</button></div>` : ""}
+      ` : `<div class="hint">Waiting for the host to start setup once everyone's in…</div>`}
+    </div>
+  `;
+}
+
+function bindPhase(phase){
+  if (phase === "lobby"){
+    const configBtn = document.getElementById("configBtn");
+    if (configBtn) configBtn.addEventListener("click", goToConfig);
+    const skipBtn = document.getElementById("skipBtn");
+    if (skipBtn) skipBtn.addEventListener("click", goToConfig);
+  } else if (phase === "configuring"){
+    bindConfig();
+  } else if (phase === "result"){
+    bindResult();
+  }
+}
+
+function categoryOptionsFor(category, subMode){
+  if (category === "side") return DATA.sides;
+  if (category === "map") return DATA.maps;
+  if (category === "role") return subMode === "agent" ? ALL_AGENTS : Object.keys(DATA.roles);
+  if (category === "weapon") return subMode === "weapon" ? ALL_WEAPONS : Object.keys(DATA.weaponTypes);
+}
+
+function renderConfig(){
+  const room = local.room;
+  const cfg = room.config;
+
+  if (!local.isHost){
+    return `
+      <div class="panel" style="--accent:var(--teal)">
+        <div class="waiting-box">
+          <div><span class="pulse"></span>Host is setting up the randomizer…</div>
+        </div>
+        <div class="readonly-config">
+          ${configSummaryLine("Side", cfg.side, null)}
+          ${configSummaryLine("Role", cfg.role, cfg.role.subMode)}
+          ${configSummaryLine("Weapon", cfg.weapon, cfg.weapon.subMode)}
+          ${configSummaryLine("Map", cfg.map, null)}
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="panel" style="--accent:var(--red)">
+      <h3 style="margin-bottom:6px;">Set up the draw</h3>
+      <p class="hint" style="margin-top:0;">For each category, randomize it or lock in a manual value.</p>
+      ${configRow("side", "Side", cfg.side, null)}
+      ${configRow("role", "Role", cfg.role, cfg.role.subMode, [
+        { key: "role", label: "By role" }, { key: "agent", label: "By agent" }
+      ])}
+      ${configRow("weapon", "Weapon", cfg.weapon, cfg.weapon.subMode, [
+        { key: "type", label: "By type" }, { key: "weapon", label: "By weapon" }
+      ])}
+      ${configRow("map", "Map", cfg.map, null)}
+      <button class="btn" id="randomizeBtn" style="margin-top:16px;">Randomize</button>
+    </div>
+  `;
+}
+
+function configSummaryLine(label, catCfg, subMode){
+  let valueText;
+  if (catCfg.mode === "manual" && catCfg.value){
+    valueText = catCfg.value;
+  } else {
+    valueText = subMode ? `Random (${subMode === "agent" || subMode === "weapon" ? "individual" : "category"})` : "Random";
+  }
+  return `<div><span>${label}</span><span class="v">${escapeHtml(valueText)}</span></div>`;
+}
+
+function configRow(category, label, catCfg, subMode, subOptions){
+  const options = categoryOptionsFor(category, subMode);
+  return `
+    <div class="config-row">
+      <div class="cat-name">${label}</div>
+      <div>
+        <div class="mini-toggle" data-mode-toggle="${category}">
+          <button data-mode="random" class="${catCfg.mode === "random" ? "active" : ""}">Random</button>
+          <button data-mode="manual" class="${catCfg.mode === "manual" ? "active" : ""}">Manual</button>
+        </div>
+        ${subOptions ? `
+          <div class="mini-toggle" data-sub-toggle="${category}" style="margin-top:6px;">
+            ${subOptions.map(o => `<button data-sub="${o.key}" class="${subMode === o.key ? "active" : ""}">${o.label}</button>`).join("")}
+          </div>
+        ` : ""}
+      </div>
+      <div>
+        ${catCfg.mode === "manual" ? `
+          <select data-value-select="${category}">
+            <option value="">Choose…</option>
+            ${options.map(o => `<option value="${escapeHtml(o)}" ${catCfg.value === o ? "selected":""}>${escapeHtml(o)}</option>`).join("")}
+          </select>
+        ` : `<div class="hint" style="margin-top:0;">Rolled at randomize time</div>`}
+      </div>
+    </div>
+  `;
+}
+
+function bindConfig(){
+  document.querySelectorAll("[data-mode-toggle]").forEach(group=>{
+    const category = group.dataset.modeToggle;
+    group.querySelectorAll("button").forEach(btn=>{
+      btn.addEventListener("click", ()=> updateConfigMode(category, btn.dataset.mode));
+    });
+  });
+  document.querySelectorAll("[data-sub-toggle]").forEach(group=>{
+    const category = group.dataset.subToggle;
+    group.querySelectorAll("button").forEach(btn=>{
+      btn.addEventListener("click", ()=> updateConfigSubMode(category, btn.dataset.sub));
+    });
+  });
+  document.querySelectorAll("[data-value-select]").forEach(sel=>{
+    const category = sel.dataset.valueSelect;
+    sel.addEventListener("change", e => updateConfigValue(category, e.target.value));
+  });
+  const randomizeBtn = document.getElementById("randomizeBtn");
+  if (randomizeBtn) randomizeBtn.addEventListener("click", doRandomize);
+}
+
+function renderResult(){
+  const r = local.room.result;
+  return `
+    <div class="ticket">
+      <h3 style="color:var(--paper-dim); font-size:14px; letter-spacing:1.5px;">RESULT IS IN</h3>
+      <div class="ticket-rows">
+        <div class="ticket-item"><div class="tag">Side</div><div class="val">${escapeHtml(r.side)}</div></div>
+        <div class="ticket-item"><div class="tag">Role</div><div class="val">${escapeHtml(r.role)}</div><div class="sub">${escapeHtml(r.roleSub)}</div></div>
+        <div class="ticket-item"><div class="tag">Weapon</div><div class="val">${escapeHtml(r.weapon)}</div><div class="sub">${escapeHtml(r.weaponSub)}</div></div>
+        <div class="ticket-item"><div class="tag">Map</div><div class="val">${escapeHtml(r.map)}</div></div>
+      </div>
+    </div>
+    ${local.isHost ? `<button class="btn secondary" id="backBtn" style="margin-top:14px;">Adjust & randomize again</button>` : `<p class="hint">Waiting for the host if they redraw…</p>`}
+  `;
+}
+
+function bindResult(){
+  const backBtn = document.getElementById("backBtn");
+  if (backBtn) backBtn.addEventListener("click", backToConfig);
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, s => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  }[s]));
+}
+
+render();
+</script>
+</body>
+</html>
