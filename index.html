@@ -518,6 +518,38 @@
       color: var(--paper-dim);
       margin-left: auto;
     }
+
+    .side-tag {
+      display: inline-block;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      border: 1px solid var(--line);
+      padding: 1px 6px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .side-tag.side-attacker {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .side-tag.side-defender {
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+
+    .player-result.side-attacker {
+      border-left-color: var(--red);
+    }
+
+    .player-result.side-defender {
+      border-left-color: var(--teal);
+    }
+
+    .config-row.is-off {
+      opacity: 0.55;
+    }
   </style>
 </head>
 
@@ -684,6 +716,7 @@
     async function updateConfigMode(category, mode) {
       const room = local.room;
       room.config[category].mode = mode;
+      if (mode !== "manual") room.config[category].value = null;
       await writeRoom(room);
       local.room = room;
       render();
@@ -728,22 +761,47 @@
       return out;
     }
 
+    // Splits players into two teams as evenly as possible (5/5 for a full
+    // 10-player room) and randomly decides which team is Attacker vs Defender.
+    function assignBalancedSides(players) {
+      const shuffled = shuffle(players);
+      const n = shuffled.length;
+      const firstCount = Math.ceil(n / 2);
+      const sideOrder = shuffle(DATA.sides);
+      const bySide = {};
+      shuffled.forEach((p, i) => {
+        bySide[p.id] = i < firstCount ? sideOrder[0] : sideOrder[1];
+      });
+      return players.map(p => bySide[p.id]);
+    }
+
     function rollResult(config, players) {
       const result = { players: [] };
 
-      // Side and map are shared by the whole room.
-      result.side = config.side.mode === "manual" && config.side.value
-        ? config.side.value
-        : pick(DATA.sides);
+      // Side: balanced team split (not per-player coin flips), so a full
+      // room comes out even — 5 Attackers / 5 Defenders. "Off" excludes it
+      // from the draw entirely. "Manual" puts everyone on the chosen side.
+      let sideAssignments;
+      if (config.side.mode === "off") {
+        sideAssignments = players.map(() => null);
+      } else if (config.side.mode === "manual" && config.side.value) {
+        sideAssignments = players.map(() => config.side.value);
+      } else {
+        sideAssignments = assignBalancedSides(players);
+      }
 
-      result.map = config.map.mode === "manual" && config.map.value
-        ? config.map.value
-        : pick(DATA.maps);
+      // Map is shared by the whole room. "Off" excludes it from the draw.
+      result.map = config.map.mode === "off"
+        ? null
+        : (config.map.mode === "manual" && config.map.value ? config.map.value : pick(DATA.maps));
 
       // Role: manual = everyone gets the same locked-in value.
       // Random = every player gets a different role/agent (cycling once the pool runs out).
+      // Off = excluded from the draw entirely.
       let roleAssignments;
-      if (config.role.mode === "manual" && config.role.value) {
+      if (config.role.mode === "off") {
+        roleAssignments = players.map(() => null);
+      } else if (config.role.mode === "manual" && config.role.value) {
         roleAssignments = players.map(() => config.role.value);
       } else {
         const pool = config.role.subMode === "agent" ? ALL_AGENTS : Object.keys(DATA.roles);
@@ -752,7 +810,9 @@
 
       // Weapon: same idea as role.
       let weaponAssignments;
-      if (config.weapon.mode === "manual" && config.weapon.value) {
+      if (config.weapon.mode === "off") {
+        weaponAssignments = players.map(() => null);
+      } else if (config.weapon.mode === "manual" && config.weapon.value) {
         weaponAssignments = players.map(() => config.weapon.value);
       } else {
         const pool = config.weapon.subMode === "weapon" ? ALL_WEAPONS : Object.keys(DATA.weaponTypes);
@@ -760,13 +820,15 @@
       }
 
       players.forEach((p, i) => {
+        const side = sideAssignments[i];
         const role = roleAssignments[i];
-        const roleSub = config.role.subMode === "agent" ? AGENT_ROLE[role] : "Any agent in this role";
+        const roleSub = role && config.role.subMode === "agent" ? AGENT_ROLE[role] : "Any agent in this role";
         const weapon = weaponAssignments[i];
-        const weaponSub = config.weapon.subMode === "weapon" ? WEAPON_TYPE[weapon] : "Any weapon of this type";
+        const weaponSub = weapon && config.weapon.subMode === "weapon" ? WEAPON_TYPE[weapon] : "Any weapon of this type";
         result.players.push({
           id: p.id,
           nickname: p.nickname,
+          side,
           role, roleSub,
           weapon, weaponSub
         });
@@ -949,10 +1011,10 @@
           <div><span class="pulse"></span>Host is setting up the randomizer…</div>
         </div>
         <div class="readonly-config">
-          ${configSummaryLine("Side", cfg.side, null)}
-          ${configSummaryLine("Role", cfg.role, cfg.role.subMode)}
-          ${configSummaryLine("Weapon", cfg.weapon, cfg.weapon.subMode)}
-          ${configSummaryLine("Map", cfg.map, null)}
+          ${configSummaryLine("side", "Side", cfg.side, null)}
+          ${configSummaryLine("role", "Role", cfg.role, cfg.role.subMode)}
+          ${configSummaryLine("weapon", "Weapon", cfg.weapon, cfg.weapon.subMode)}
+          ${configSummaryLine("map", "Map", cfg.map, null)}
         </div>
       </div>
     `;
@@ -975,10 +1037,14 @@
   `;
     }
 
-    function configSummaryLine(label, catCfg, subMode) {
+    function configSummaryLine(category, label, catCfg, subMode) {
       let valueText;
-      if (catCfg.mode === "manual" && catCfg.value) {
+      if (catCfg.mode === "off") {
+        valueText = "Off";
+      } else if (catCfg.mode === "manual" && catCfg.value) {
         valueText = catCfg.value;
+      } else if (category === "side") {
+        valueText = "Balanced teams";
       } else {
         valueText = subMode ? `Random (${subMode === "agent" || subMode === "weapon" ? "individual" : "category"})` : "Random";
       }
@@ -987,27 +1053,33 @@
 
     function configRow(category, label, catCfg, subMode, subOptions) {
       const options = categoryOptionsFor(category, subMode);
+      const isOff = catCfg.mode === "off";
       return `
-    <div class="config-row">
+    <div class="config-row ${isOff ? "is-off" : ""}">
       <div class="cat-name">${label}</div>
       <div>
         <div class="mini-toggle" data-mode-toggle="${category}">
           <button data-mode="random" class="${catCfg.mode === "random" ? "active" : ""}">Random</button>
           <button data-mode="manual" class="${catCfg.mode === "manual" ? "active" : ""}">Manual</button>
+          <button data-mode="off" class="${isOff ? "active" : ""}">Off</button>
         </div>
-        ${subOptions ? `
+        ${subOptions && !isOff ? `
           <div class="mini-toggle" data-sub-toggle="${category}" style="margin-top:6px;">
             ${subOptions.map(o => `<button data-sub="${o.key}" class="${subMode === o.key ? "active" : ""}">${o.label}</button>`).join("")}
           </div>
         ` : ""}
       </div>
       <div>
-        ${catCfg.mode === "manual" ? `
+        ${isOff
+          ? `<div class="hint" style="margin-top:0;">Won't be included in the draw</div>`
+          : catCfg.mode === "manual"
+            ? `
           <select data-value-select="${category}">
             <option value="">Choose…</option>
             ${options.map(o => `<option value="${escapeHtml(o)}" ${catCfg.value === o ? "selected" : ""}>${escapeHtml(o)}</option>`).join("")}
           </select>
-        ` : `<div class="hint" style="margin-top:0;">Rolled at randomize time</div>`}
+        `
+            : `<div class="hint" style="margin-top:0;">${category === "side" ? "Teams balanced automatically" : "Rolled at randomize time"}</div>`}
       </div>
     </div>
   `;
@@ -1036,25 +1108,36 @@
 
     function renderResult() {
       const r = local.room.result;
+
+      const sideCounts = {};
+      r.players.forEach(p => { if (p.side) sideCounts[p.side] = (sideCounts[p.side] || 0) + 1; });
+      const sideEnabled = Object.keys(sideCounts).length > 0;
+      const sideSummary = Object.entries(sideCounts).map(([side, n]) => `${n} ${side}`).join(" · ");
+
       const playerCards = r.players.map(p => {
         const isYou = p.id === local.playerId;
+        const rows = [
+          p.role ? `<div class="pr-row"><span class="pr-tag">Role</span><span class="pr-val">${escapeHtml(p.role)}</span><span class="pr-sub">${escapeHtml(p.roleSub)}</span></div>` : "",
+          p.weapon ? `<div class="pr-row"><span class="pr-tag">Weapon</span><span class="pr-val">${escapeHtml(p.weapon)}</span><span class="pr-sub">${escapeHtml(p.weaponSub)}</span></div>` : ""
+        ].join("");
         return `
-      <div class="player-result">
-        <div class="pr-name">${escapeHtml(p.nickname)}${isYou ? '<span class="you-tag">YOU</span>' : ""}</div>
-        <div class="pr-row"><span class="pr-tag">Role</span><span class="pr-val">${escapeHtml(p.role)}</span><span class="pr-sub">${escapeHtml(p.roleSub)}</span></div>
-        <div class="pr-row"><span class="pr-tag">Weapon</span><span class="pr-val">${escapeHtml(p.weapon)}</span><span class="pr-sub">${escapeHtml(p.weaponSub)}</span></div>
+      <div class="player-result ${p.side ? "side-" + p.side.toLowerCase() : ""}">
+        <div class="pr-name">${escapeHtml(p.nickname)}${isYou ? '<span class="you-tag">YOU</span>' : ""}${p.side ? `<span class="side-tag side-${p.side.toLowerCase()}">${escapeHtml(p.side)}</span>` : ""}</div>
+        ${rows || `<div class="pr-row"><span class="pr-sub">No categories rolled</span></div>`}
       </div>
     `;
       }).join("");
 
       return `
+    ${r.map || sideEnabled ? `
     <div class="ticket">
       <h3 style="color:var(--paper-dim); font-size:14px; letter-spacing:1.5px;">RESULT IS IN</h3>
-      <div class="ticket-rows" style="grid-template-columns: repeat(2, 1fr);">
-        <div class="ticket-item"><div class="tag">Side</div><div class="val">${escapeHtml(r.side)}</div></div>
-        <div class="ticket-item"><div class="tag">Map</div><div class="val">${escapeHtml(r.map)}</div></div>
+      <div class="ticket-rows" style="grid-template-columns: repeat(${r.map && sideEnabled ? 2 : 1}, 1fr);">
+        ${sideEnabled ? `<div class="ticket-item" ${!r.map ? 'style="border-left:none; padding-left:0;"' : ""}><div class="tag">Teams</div><div class="val" style="font-size:17px;">${escapeHtml(sideSummary)}</div></div>` : ""}
+        ${r.map ? `<div class="ticket-item" ${!sideEnabled ? 'style="border-left:none; padding-left:0;"' : ""}><div class="tag">Map</div><div class="val">${escapeHtml(r.map)}</div></div>` : ""}
       </div>
     </div>
+    ` : `<h3 style="color:var(--paper-dim); font-size:14px; letter-spacing:1.5px;">RESULT IS IN</h3>`}
     <div class="player-results">
       ${playerCards}
     </div>
