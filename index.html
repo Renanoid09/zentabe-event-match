@@ -732,6 +732,8 @@
         errFull: "That room is full.",
         errCreateFail: "Couldn't create the room. Try again.",
         errJoinFail: "Couldn't join the room. Try again.",
+        creating: "Creating…",
+        joining: "Joining…",
         roomCodeShare: "ROOM CODE — SHARE THIS",
         joined: (n, max) => `${n} / ${max} joined`,
         open: "Open",
@@ -794,6 +796,8 @@
         errFull: "そのルームは満員です。",
         errCreateFail: "ルームを作成できませんでした。もう一度お試しください。",
         errJoinFail: "ルームに参加できませんでした。もう一度お試しください。",
+        creating: "作成中…",
+        joining: "参加中…",
         roomCodeShare: "ルームコード — これを共有",
         joined: (n, max) => `${n} / ${max} 人参加`,
         open: "空き",
@@ -856,6 +860,8 @@
         errFull: "해당 방은 가득 찼습니다.",
         errCreateFail: "방을 만들지 못했습니다. 다시 시도해 주세요.",
         errJoinFail: "방에 참가하지 못했습니다. 다시 시도해 주세요.",
+        creating: "만드는 중…",
+        joining: "참가하는 중…",
         roomCodeShare: "방 코드 — 이걸 공유하세요",
         joined: (n, max) => `${n} / ${max}명 참가`,
         open: "빈 자리",
@@ -978,7 +984,8 @@
       room: null,
       error: "",
       pollTimer: null,
-      lang: detectSavedLang()
+      lang: detectSavedLang(),
+      busy: false        // true while a create/join request is in flight, to block spam-clicks
     };
 
     function setLang(lang) {
@@ -1030,53 +1037,100 @@
     }
 
     /* ---------------- actions ---------------- */
+    // Per-tab session bookkeeping: remembers which player id this browser
+    // tab already used to join a given room code, so a retried/duplicated
+    // join submission (double-click, slow network, accidental resubmit)
+    // reconnects as the same player instead of adding a second copy.
+    function playerSessionKey(code) { return `loadoutDrawPlayer:${code}`; }
+    function getStoredPlayerId(code) {
+      try { return sessionStorage.getItem(playerSessionKey(code)); } catch (e) { return null; }
+    }
+    function setStoredPlayerId(code, id) {
+      try { sessionStorage.setItem(playerSessionKey(code), id); } catch (e) { /* ignore */ }
+    }
+    function clearStoredPlayerId(code) {
+      try { sessionStorage.removeItem(playerSessionKey(code)); } catch (e) { /* ignore */ }
+    }
+
     async function createRoom() {
+      // `local.busy` is set synchronously (before any await), so a rapid
+      // second click/tap re-enters this function before the first request
+      // finishes and is bounced here rather than creating a second room.
+      if (local.busy) return;
       const nickname = local.nickname.trim();
       if (!nickname) { local.error = t('errNickname'); render(); return; }
-      const id = crypto.randomUUID();
-      const code = genCode();
-      const room = {
-        code,
-        hostId: id,
-        createdAt: Date.now(),
-        players: [{ id, nickname }],
-        phase: "lobby",
-        config: defaultConfig(),
-        result: null
-      };
-      const ok = await writeRoom(room);
-      if (!ok) { local.error = t('errCreateFail'); render(); return; }
-      local.playerId = id;
-      local.roomCode = code;
-      local.isHost = true;
-      local.room = room;
-      local.screen = "in-room";
+      local.busy = true;
       local.error = "";
-      startPolling();
       render();
+      try {
+        const id = crypto.randomUUID();
+        const code = genCode();
+        const room = {
+          code,
+          hostId: id,
+          createdAt: Date.now(),
+          players: [{ id, nickname }],
+          phase: "lobby",
+          config: defaultConfig(),
+          result: null
+        };
+        const ok = await writeRoom(room);
+        if (!ok) { local.error = t('errCreateFail'); return; }
+        setStoredPlayerId(code, id);
+        local.playerId = id;
+        local.roomCode = code;
+        local.isHost = true;
+        local.room = room;
+        local.screen = "in-room";
+        local.error = "";
+        startPolling();
+      } finally {
+        local.busy = false;
+        render();
+      }
     }
 
     async function joinRoom() {
+      if (local.busy) return;
       const nickname = local.nickname.trim();
       const code = local.joinCode.trim().toUpperCase();
       if (!nickname) { local.error = t('errNickname'); render(); return; }
       if (!code) { local.error = t('errCode'); render(); return; }
-      const room = await readRoom(code);
-      if (!room) { local.error = t('errNoRoom'); render(); return; }
-      if (room.phase !== "lobby") { local.error = t('errAlreadyStarted'); render(); return; }
-      if (room.players.length >= MAX_PLAYERS) { local.error = t('errFull'); render(); return; }
-      const id = crypto.randomUUID();
-      room.players.push({ id, nickname });
-      const ok = await writeRoom(room);
-      if (!ok) { local.error = t('errJoinFail'); render(); return; }
-      local.playerId = id;
-      local.roomCode = code;
-      local.isHost = false;
-      local.room = room;
-      local.screen = "in-room";
+      local.busy = true;
       local.error = "";
-      startPolling();
       render();
+      try {
+        const room = await readRoom(code);
+        if (!room) { local.error = t('errNoRoom'); return; }
+        if (room.phase !== "lobby") { local.error = t('errAlreadyStarted'); return; }
+
+        // If this tab already joined this exact room (e.g. the click fired
+        // twice, or a flaky connection caused a retry), reuse that same
+        // player slot instead of adding another one.
+        const storedId = getStoredPlayerId(code);
+        const existing = storedId && room.players.find(p => p.id === storedId);
+        let id;
+        if (existing) {
+          id = existing.id;
+        } else {
+          if (room.players.length >= MAX_PLAYERS) { local.error = t('errFull'); return; }
+          id = crypto.randomUUID();
+          room.players.push({ id, nickname });
+          const ok = await writeRoom(room);
+          if (!ok) { local.error = t('errJoinFail'); return; }
+        }
+        setStoredPlayerId(code, id);
+        local.playerId = id;
+        local.roomCode = code;
+        local.isHost = false;
+        local.room = room;
+        local.screen = "in-room";
+        local.error = "";
+        startPolling();
+      } finally {
+        local.busy = false;
+        render();
+      }
     }
 
     async function refreshRoom() {
@@ -1266,6 +1320,7 @@
     function leaveRoom() {
       if (local.pollTimer) clearInterval(local.pollTimer);
       local.pollTimer = null;
+      if (local.roomCode) clearStoredPlayerId(local.roomCode);
       local.screen = "landing";
       local.tab = "create";
       local.room = null;
@@ -1329,7 +1384,7 @@
           <label>${t('yourNickname')}</label>
           <input id="nickInput" type="text" maxlength="20" placeholder="${escapeHtml(t('nicknamePlaceholder'))}" value="${escapeHtml(local.nickname)}">
         </div>
-        <button class="btn" id="createBtn">${t('createRoomBtn')}</button>
+        <button class="btn" id="createBtn" ${local.busy ? "disabled" : ""}>${local.busy ? t('creating') : t('createRoomBtn')}</button>
       ` : `
         <div class="field">
           <label>${t('roomCodeField')}</label>
@@ -1339,7 +1394,7 @@
           <label>${t('yourNickname')}</label>
           <input id="nickInput" type="text" maxlength="20" placeholder="${escapeHtml(t('nicknamePlaceholder'))}" value="${escapeHtml(local.nickname)}">
         </div>
-        <button class="btn" id="joinBtn">${t('joinRoomBtn')}</button>
+        <button class="btn" id="joinBtn" ${local.busy ? "disabled" : ""}>${local.busy ? t('joining') : t('joinRoomBtn')}</button>
       `}
       ${local.error ? `<div class="error">${escapeHtml(local.error)}</div>` : ""}
     </div>
