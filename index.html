@@ -855,6 +855,24 @@
       color: var(--teal);
       border-color: var(--teal);
     }
+
+    .result-heading {
+      color: var(--paper-dim);
+      font-size: 14px;
+      letter-spacing: 1.5px;
+    }
+
+    /* Letter-spacing tuned for short, all-caps English labels (ROLE,
+       ATTACKERS, RESULT IS IN, etc.) reads as oversized/spaced-out on
+       Japanese text, since CJK glyphs already fill their full character
+       box — most noticeably on the role label/heading in the result
+       screen. Tighten it back down for Japanese specifically. */
+    :lang(ja) .pr-tag,
+    :lang(ja) .ticket-item .tag,
+    :lang(ja) .side-col-heading,
+    :lang(ja) .result-heading {
+      letter-spacing: 0;
+    }
   </style>
 </head>
 
@@ -1177,21 +1195,10 @@
       return value;
     }
 
-    // ---- small original iconography for options (not game assets) ----
-    // A shared 6-color palette cycles across each category's own list, so
-    // items in the same group (e.g. two Controllers, two Rifles) are visually
-    // distinguishable without needing bespoke art per item.
-    const ICON_PALETTE = ["#FF4655", "#5FA8A0", "#F0C75E", "#9B7FE0", "#E8823C", "#7FB3E8"];
-    function paletteColor(i) {
-      return ICON_PALETTE[((i % ICON_PALETTE.length) + ICON_PALETTE.length) % ICON_PALETTE.length];
-    }
-    function initialsOf(str) {
-      return String(str).replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase() || "?";
-    }
-    // Returns a small colored monogram badge for a specific option value.
-    // Shape signals the kind of thing (circle = person/side, square =
-    // weapon, diamond = map); color groups it with its parent category
-    // (an agent's color matches its role, a weapon's matches its type).
+    // ---- iconography for options ----
+    // Only role-category options (agents and role groups) get a visual
+    // icon, sourced from images/agents/ and images/roles/ respectively.
+    // Side, weapon, and map options are shown as plain text with no icon.
     function optionIcon(category, subMode, value) {
       if (!value) return "";
       if (category === "role" && subMode === "agent") {
@@ -1202,25 +1209,7 @@
         const slug = roleImageSlug(value);
         return `<img class="opt-icon opt-icon-circle opt-icon-role" src="images/roles/${slug}.webp" alt="${escapeHtml(value)}" aria-hidden="true">`;
       }
-      let shape, color;
-      if (category === "side") {
-        shape = "circle";
-        color = value === "Attacker" ? "var(--red)" : "var(--teal)";
-      } else if (category === "role") {
-        shape = "circle";
-        const roleName = subMode === "agent" ? AGENT_ROLE[value] : value;
-        color = paletteColor(Object.keys(DATA.roles).indexOf(roleName));
-      } else if (category === "weapon") {
-        shape = "square";
-        const typeName = subMode === "weapon" ? WEAPON_TYPE[value] : value;
-        color = paletteColor(Object.keys(DATA.weaponTypes).indexOf(typeName));
-      } else if (category === "map") {
-        shape = "diamond";
-        color = paletteColor(DATA.maps.indexOf(value));
-      } else {
-        return "";
-      }
-      return `<span class="opt-icon opt-icon-${shape}" style="--icon-color:${color}" aria-hidden="true"><span class="opt-icon-label">${escapeHtml(initialsOf(value))}</span></span>`;
+      return "";
     }
 
     // Maps an agent name to the filename (without extension) used under
@@ -1679,6 +1668,7 @@
 
     /* ---------------- rendering ---------------- */
     function render() {
+      document.documentElement.lang = local.lang;
       const app = document.getElementById("app");
       if (local.screen === "landing") {
         app.innerHTML = renderLanding();
@@ -1966,7 +1956,7 @@
       }
 
       return `
-    <div class="config-row ${isOff ? "is-off" : ""} ${isManual && perPlayer ? "manual-expanded" : ""}">
+    <div class="config-row ${isOff ? "is-off" : ""} ${isManual ? "manual-expanded" : ""}">
       <div class="cat-name">${t(category)}</div>
       <div>
         <div class="mini-toggle" data-mode-toggle="${category}">
@@ -2139,13 +2129,13 @@
       return `
     ${r.map || sideEnabled ? `
     <div class="ticket">
-      <h3 style="color:var(--paper-dim); font-size:14px; letter-spacing:1.5px;">${t('resultIsIn')}</h3>
+      <h3 class="result-heading">${t('resultIsIn')}</h3>
       <div class="ticket-rows" style="grid-template-columns: repeat(${r.map && sideEnabled ? 2 : 1}, 1fr);">
         ${sideEnabled ? `<div class="ticket-item" ${!r.map ? 'style="border-left:none; padding-left:0;"' : ""}><div class="tag">${t('teams')}</div><div class="val" style="font-size:17px;">${escapeHtml(sideSummary)}</div></div>` : ""}
         ${r.map ? `<div class="ticket-item" ${!sideEnabled ? 'style="border-left:none; padding-left:0;"' : ""}><div class="tag">${t('map')}</div><div class="val">${optionIcon("map", null, r.map)}${escapeHtml(translateOption("map", null, r.map))}</div></div>` : ""}
       </div>
     </div>
-    ` : `<h3 style="color:var(--paper-dim); font-size:14px; letter-spacing:1.5px;">${t('resultIsIn')}</h3>`}
+    ` : `<h3 class="result-heading">${t('resultIsIn')}</h3>`}
     ${resultsHtml}
     ${local.isHost ? `<button class="btn secondary" id="backBtn" style="margin-top:14px;">${t('adjustRandomizeAgain')}</button>` : `<p class="hint">${t('waitingHostRedraw')}</p>`}
   `;
