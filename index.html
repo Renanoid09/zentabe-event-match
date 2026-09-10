@@ -550,6 +550,133 @@
     .config-row.is-off {
       opacity: 0.55;
     }
+
+    /* ---- raw selects used outside .field (config manual pickers) ---- */
+    select[data-value-select],
+    select[data-manual-player-select] {
+      width: 100%;
+      background: var(--ink);
+      border: 1px solid var(--line);
+      color: var(--paper);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 10px;
+    }
+
+    select[data-value-select]:focus,
+    select[data-manual-player-select]:focus {
+      outline: none;
+      border-color: var(--red);
+    }
+
+    /* ---- per-player manual assignment list ---- */
+    .manual-player-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .manual-player-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .manual-player-row .mpr-name {
+      flex: 0 0 108px;
+      font-size: 13px;
+      color: var(--paper-dim);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .manual-player-row select {
+      flex: 1;
+    }
+
+    @media (min-width:601px) {
+      .config-row.manual-expanded {
+        grid-template-columns: 100px 1fr;
+      }
+
+      .config-row.manual-expanded>div:last-child {
+        grid-column: 1 / -1;
+        margin-top: 10px;
+      }
+    }
+
+    /* ---- language switcher ---- */
+    .lang-switch {
+      display: flex;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .lang-switch button {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--paper-dim);
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+
+    .lang-switch button.active {
+      border-color: var(--red);
+      color: var(--paper);
+      background: var(--panel-raised);
+    }
+
+    .lang-switch button:hover {
+      color: var(--paper);
+    }
+
+    /* ---- result: attackers left / defenders right ---- */
+    .side-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 10px;
+    }
+
+    @media (max-width:560px) {
+      .side-columns {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .side-column {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .side-col-heading {
+      font-family: 'Oswald', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .side-col-heading.side-attacker {
+      color: var(--red);
+      border-color: var(--red);
+    }
+
+    .side-col-heading.side-defender {
+      color: var(--teal);
+      border-color: var(--teal);
+    }
   </style>
 </head>
 
@@ -584,6 +711,234 @@
     const ALL_WEAPONS = Object.keys(WEAPON_TYPE);
     const MAX_PLAYERS = 10;
 
+    /* ---------------- i18n ---------------- */
+    // Agent, weapon, and map names are kept as their official English
+    // names in every language (as Valorant itself mostly does in-game).
+    // Only interface copy and the broader category names are translated.
+    const STRINGS = {
+      en: {
+        subtitle: "Create a room and share the code, or join one your host gave you.",
+        tabCreate: "Create room",
+        tabJoin: "Join room",
+        yourNickname: "Your nickname",
+        nicknamePlaceholder: "e.g. Jett_Main",
+        createRoomBtn: "Create room",
+        roomCodeField: "Room code",
+        joinRoomBtn: "Join room",
+        errNickname: "Enter a nickname first.",
+        errCode: "Enter a room code.",
+        errNoRoom: "No room found with that code.",
+        errAlreadyStarted: "That room has already started.",
+        errFull: "That room is full.",
+        errCreateFail: "Couldn't create the room. Try again.",
+        errJoinFail: "Couldn't join the room. Try again.",
+        roomCodeShare: "ROOM CODE — SHARE THIS",
+        joined: (n, max) => `${n} / ${max} joined`,
+        open: "Open",
+        you: "YOU",
+        setupRandomizer: "Set up randomizer",
+        waitingForMore: (n) => `Waiting for ${n} more`,
+        startNowWith: (n) => `Start now with ${n} players instead`,
+        waitingHostStart: "Waiting for the host to start setup once everyone's in…",
+        hostSettingUp: "Host is setting up the randomizer…",
+        setUpDraw: "Set up the draw",
+        setUpDrawHint: "For each category, randomize it or lock in a manual value.",
+        side: "Side",
+        role: "Role",
+        weapon: "Weapon",
+        map: "Map",
+        random: "Random",
+        manual: "Manual",
+        off: "Off",
+        byRole: "By role",
+        byAgent: "By agent",
+        byType: "By type",
+        byWeapon: "By weapon",
+        choose: "Choose…",
+        notIncluded: "Won't be included in the draw",
+        teamsBalanced: "Teams balanced automatically",
+        rolledAtRandomize: "Rolled at randomize time",
+        randomizeBtn: "Randomize",
+        resultIsIn: "RESULT IS IN",
+        teams: "Teams",
+        attackers: "Attackers",
+        defenders: "Defenders",
+        noCategoriesRolled: "No categories rolled",
+        adjustRandomizeAgain: "Adjust & randomize again",
+        waitingHostRedraw: "Waiting for the host if they redraw…",
+        leaveRoom: "Leave room",
+        loadingRoom: "Loading room…",
+        roomLabel: "Room",
+        playersCount: (n, max) => `${n}/${max} players`,
+        youAreHost: "you are the host",
+        randomBalanced: "Balanced teams",
+        randomIndividual: "Random (individual)",
+        randomCategory: "Random (category)",
+        manualPerPlayer: "Manual — set per player",
+        anyAgentInRole: "Any agent in this role",
+        anyWeaponOfType: "Any weapon of this type"
+      },
+      ja: {
+        subtitle: "ルームを作成してコードを共有するか、ホストから受け取ったコードで参加してください。",
+        tabCreate: "ルームを作成",
+        tabJoin: "ルームに参加",
+        yourNickname: "ニックネーム",
+        nicknamePlaceholder: "例：Jett_Main",
+        createRoomBtn: "ルームを作成",
+        roomCodeField: "ルームコード",
+        joinRoomBtn: "ルームに参加",
+        errNickname: "先にニックネームを入力してください。",
+        errCode: "ルームコードを入力してください。",
+        errNoRoom: "そのコードのルームが見つかりません。",
+        errAlreadyStarted: "そのルームはすでに開始されています。",
+        errFull: "そのルームは満員です。",
+        errCreateFail: "ルームを作成できませんでした。もう一度お試しください。",
+        errJoinFail: "ルームに参加できませんでした。もう一度お試しください。",
+        roomCodeShare: "ルームコード — これを共有",
+        joined: (n, max) => `${n} / ${max} 人参加`,
+        open: "空き",
+        you: "自分",
+        setupRandomizer: "ランダマイザーを設定",
+        waitingForMore: (n) => `あと${n}人待ち`,
+        startNowWith: (n) => `${n}人のまま今すぐ開始`,
+        waitingHostStart: "全員揃ったらホストが設定を開始します…",
+        hostSettingUp: "ホストがランダマイザーを設定中…",
+        setUpDraw: "抽選を設定",
+        setUpDrawHint: "各項目についてランダムにするか、手動で値を固定してください。",
+        side: "サイド",
+        role: "ロール",
+        weapon: "武器",
+        map: "マップ",
+        random: "ランダム",
+        manual: "手動",
+        off: "オフ",
+        byRole: "ロール別",
+        byAgent: "エージェント別",
+        byType: "種類別",
+        byWeapon: "武器別",
+        choose: "選択…",
+        notIncluded: "抽選に含まれません",
+        teamsBalanced: "チームは自動的に均等になります",
+        rolledAtRandomize: "抽選時にランダムに決定されます",
+        randomizeBtn: "抽選する",
+        resultIsIn: "結果発表",
+        teams: "チーム",
+        attackers: "アタッカー",
+        defenders: "ディフェンダー",
+        noCategoriesRolled: "抽選項目なし",
+        adjustRandomizeAgain: "設定を調整してもう一度抽選",
+        waitingHostRedraw: "ホストが再抽選するのを待っています…",
+        leaveRoom: "ルームを退出",
+        loadingRoom: "ルームを読み込み中…",
+        roomLabel: "ルーム",
+        playersCount: (n, max) => `${n}/${max}人`,
+        youAreHost: "あなたはホストです",
+        randomBalanced: "均等なチーム分け",
+        randomIndividual: "ランダム（個別）",
+        randomCategory: "ランダム（カテゴリー）",
+        manualPerPlayer: "手動 — プレイヤーごとに設定",
+        anyAgentInRole: "このロールの任意のエージェント",
+        anyWeaponOfType: "この種類の任意の武器"
+      },
+      ko: {
+        subtitle: "방을 만들어 코드를 공유하거나 호스트에게 받은 코드로 참가하세요.",
+        tabCreate: "방 만들기",
+        tabJoin: "방 참가",
+        yourNickname: "닉네임",
+        nicknamePlaceholder: "예: Jett_Main",
+        createRoomBtn: "방 만들기",
+        roomCodeField: "방 코드",
+        joinRoomBtn: "방 참가",
+        errNickname: "먼저 닉네임을 입력하세요.",
+        errCode: "방 코드를 입력하세요.",
+        errNoRoom: "해당 코드의 방을 찾을 수 없습니다.",
+        errAlreadyStarted: "해당 방은 이미 시작되었습니다.",
+        errFull: "해당 방은 가득 찼습니다.",
+        errCreateFail: "방을 만들지 못했습니다. 다시 시도해 주세요.",
+        errJoinFail: "방에 참가하지 못했습니다. 다시 시도해 주세요.",
+        roomCodeShare: "방 코드 — 이걸 공유하세요",
+        joined: (n, max) => `${n} / ${max}명 참가`,
+        open: "빈 자리",
+        you: "나",
+        setupRandomizer: "랜덤 설정 시작",
+        waitingForMore: (n) => `${n}명 더 필요`,
+        startNowWith: (n) => `${n}명으로 지금 시작`,
+        waitingHostStart: "모두 모이면 호스트가 설정을 시작합니다…",
+        hostSettingUp: "호스트가 랜덤 설정을 진행 중입니다…",
+        setUpDraw: "추첨 설정",
+        setUpDrawHint: "각 항목을 무작위로 설정하거나 수동으로 값을 지정하세요.",
+        side: "진영",
+        role: "역할",
+        weapon: "무기",
+        map: "맵",
+        random: "무작위",
+        manual: "수동",
+        off: "끄기",
+        byRole: "역할별",
+        byAgent: "요원별",
+        byType: "종류별",
+        byWeapon: "무기별",
+        choose: "선택…",
+        notIncluded: "추첨에 포함되지 않습니다",
+        teamsBalanced: "팀이 자동으로 균등하게 배정됩니다",
+        rolledAtRandomize: "추첨 시 무작위로 결정됩니다",
+        randomizeBtn: "무작위 추첨",
+        resultIsIn: "결과 발표",
+        teams: "팀",
+        attackers: "공격팀",
+        defenders: "수비팀",
+        noCategoriesRolled: "추첨된 항목 없음",
+        adjustRandomizeAgain: "설정 조정 후 다시 추첨",
+        waitingHostRedraw: "호스트가 다시 추첨하기를 기다리는 중…",
+        leaveRoom: "방 나가기",
+        loadingRoom: "방을 불러오는 중…",
+        roomLabel: "방",
+        playersCount: (n, max) => `${n}/${max}명`,
+        youAreHost: "당신이 호스트입니다",
+        randomBalanced: "균등한 팀 분배",
+        randomIndividual: "무작위(개별)",
+        randomCategory: "무작위(카테고리)",
+        manualPerPlayer: "수동 — 플레이어별로 설정",
+        anyAgentInRole: "이 역할의 임의 요원",
+        anyWeaponOfType: "이 종류의 임의 무기"
+      }
+    };
+
+    // Category-level display names (side, role group, weapon type). Specific
+    // agent/weapon/map names are intentionally left untranslated.
+    const SIDE_LABELS = {
+      en: { Attacker: "Attacker", Defender: "Defender" },
+      ja: { Attacker: "アタッカー", Defender: "ディフェンダー" },
+      ko: { Attacker: "공격팀", Defender: "수비팀" }
+    };
+    const ROLE_LABELS = {
+      en: { Duelist: "Duelist", Initiator: "Initiator", Controller: "Controller", Sentinel: "Sentinel" },
+      ja: { Duelist: "デュエリスト", Initiator: "イニシエーター", Controller: "コントローラー", Sentinel: "センチネル" },
+      ko: { Duelist: "듀얼리스트", Initiator: "이니시에이터", Controller: "컨트롤러", Sentinel: "센티넬" }
+    };
+    const WEAPON_TYPE_LABELS = {
+      en: { Sidearm: "Sidearm", SMG: "SMG", Shotgun: "Shotgun", Rifle: "Rifle", "Sniper Rifle": "Sniper Rifle", "Machine Gun": "Machine Gun" },
+      ja: { Sidearm: "サイドアーム", SMG: "SMG", Shotgun: "ショットガン", Rifle: "ライフル", "Sniper Rifle": "スナイパーライフル", "Machine Gun": "マシンガン" },
+      ko: { Sidearm: "사이드암", SMG: "SMG", Shotgun: "샷건", Rifle: "라이플", "Sniper Rifle": "스나이퍼 라이플", "Machine Gun": "머신건" }
+    };
+
+    function t(key, ...args) {
+      const dict = STRINGS[local.lang] || STRINGS.en;
+      const entry = dict[key] !== undefined ? dict[key] : STRINGS.en[key];
+      return typeof entry === "function" ? entry(...args) : entry;
+    }
+
+    // Translates a raw stored value (which is always the English game name,
+    // used internally for logic/CSS classes) into the current display
+    // language. Individual agent/weapon/map names pass through unchanged.
+    function translateOption(category, subMode, value) {
+      if (!value) return value;
+      if (category === "side") return (SIDE_LABELS[local.lang] && SIDE_LABELS[local.lang][value]) || value;
+      if (category === "role") return subMode === "agent" ? value : ((ROLE_LABELS[local.lang] && ROLE_LABELS[local.lang][value]) || value);
+      if (category === "weapon") return subMode === "weapon" ? value : ((WEAPON_TYPE_LABELS[local.lang] && WEAPON_TYPE_LABELS[local.lang][value]) || value);
+      return value;
+    }
+
     function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
     function roomKey(code) { return "room:" + code; }
     function genCode() {
@@ -594,11 +949,21 @@
     }
     function defaultConfig() {
       return {
-        side: { mode: "random", value: null },
-        role: { mode: "random", subMode: "role", value: null },
-        weapon: { mode: "random", subMode: "type", value: null },
+        // side/role/weapon: "manual" mode is assigned per player, via
+        // manualValues keyed by player id. map stays a single room-wide value.
+        side: { mode: "random", manualValues: {} },
+        role: { mode: "random", subMode: "role", manualValues: {} },
+        weapon: { mode: "random", subMode: "type", manualValues: {} },
         map: { mode: "random", value: null }
       };
+    }
+
+    function detectSavedLang() {
+      try {
+        const saved = localStorage.getItem("loadoutDrawLang");
+        if (saved && STRINGS[saved]) return saved;
+      } catch (e) { /* ignore (e.g. storage disabled) */ }
+      return "en";
     }
 
     /* ---------------- local (in-memory) state ---------------- */
@@ -612,8 +977,32 @@
       isHost: false,
       room: null,
       error: "",
-      pollTimer: null
+      pollTimer: null,
+      lang: detectSavedLang()
     };
+
+    function setLang(lang) {
+      if (!STRINGS[lang]) return;
+      local.lang = lang;
+      try { localStorage.setItem("loadoutDrawLang", lang); } catch (e) { /* ignore */ }
+      render();
+    }
+
+    function langSwitcherHtml() {
+      return `
+    <div class="lang-switch" data-lang-switch>
+      <button data-lang="en" class="${local.lang === "en" ? "active" : ""}">EN</button>
+      <button data-lang="ja" class="${local.lang === "ja" ? "active" : ""}">日本語</button>
+      <button data-lang="ko" class="${local.lang === "ko" ? "active" : ""}">한국어</button>
+    </div>
+  `;
+    }
+
+    function bindLangSwitch() {
+      document.querySelectorAll("[data-lang-switch] button").forEach(btn => {
+        btn.addEventListener("click", () => setLang(btn.dataset.lang));
+      });
+    }
 
     /* ---------------- storage helpers ---------------- */
     async function readRoom(code) {
@@ -643,7 +1032,7 @@
     /* ---------------- actions ---------------- */
     async function createRoom() {
       const nickname = local.nickname.trim();
-      if (!nickname) { local.error = "Enter a nickname first."; render(); return; }
+      if (!nickname) { local.error = t('errNickname'); render(); return; }
       const id = crypto.randomUUID();
       const code = genCode();
       const room = {
@@ -656,7 +1045,7 @@
         result: null
       };
       const ok = await writeRoom(room);
-      if (!ok) { local.error = "Couldn't create the room. Try again."; render(); return; }
+      if (!ok) { local.error = t('errCreateFail'); render(); return; }
       local.playerId = id;
       local.roomCode = code;
       local.isHost = true;
@@ -670,16 +1059,16 @@
     async function joinRoom() {
       const nickname = local.nickname.trim();
       const code = local.joinCode.trim().toUpperCase();
-      if (!nickname) { local.error = "Enter a nickname first."; render(); return; }
-      if (!code) { local.error = "Enter a room code."; render(); return; }
+      if (!nickname) { local.error = t('errNickname'); render(); return; }
+      if (!code) { local.error = t('errCode'); render(); return; }
       const room = await readRoom(code);
-      if (!room) { local.error = "No room found with that code."; render(); return; }
-      if (room.phase !== "lobby") { local.error = "That room has already started."; render(); return; }
-      if (room.players.length >= MAX_PLAYERS) { local.error = "That room is full."; render(); return; }
+      if (!room) { local.error = t('errNoRoom'); render(); return; }
+      if (room.phase !== "lobby") { local.error = t('errAlreadyStarted'); render(); return; }
+      if (room.players.length >= MAX_PLAYERS) { local.error = t('errFull'); render(); return; }
       const id = crypto.randomUUID();
       room.players.push({ id, nickname });
       const ok = await writeRoom(room);
-      if (!ok) { local.error = "Couldn't join the room. Try again."; render(); return; }
+      if (!ok) { local.error = t('errJoinFail'); render(); return; }
       local.playerId = id;
       local.roomCode = code;
       local.isHost = false;
@@ -716,7 +1105,9 @@
     async function updateConfigMode(category, mode) {
       const room = local.room;
       room.config[category].mode = mode;
-      if (mode !== "manual") room.config[category].value = null;
+      // "map" is still a single room-wide value; side/role/weapon keep their
+      // manualValues around so switching back to Manual restores selections.
+      if (category === "map" && mode !== "manual") room.config[category].value = null;
       await writeRoom(room);
       local.room = room;
       render();
@@ -726,6 +1117,7 @@
       const room = local.room;
       room.config[category].subMode = subMode;
       room.config[category].value = null;
+      room.config[category].manualValues = {}; // pool changed, old picks no longer valid
       await writeRoom(room);
       local.room = room;
       render();
@@ -734,6 +1126,15 @@
     async function updateConfigValue(category, value) {
       const room = local.room;
       room.config[category].value = value;
+      await writeRoom(room);
+      local.room = room;
+      render();
+    }
+
+    async function updateConfigManualValue(category, playerId, value) {
+      const room = local.room;
+      if (!room.config[category].manualValues) room.config[category].manualValues = {};
+      room.config[category].manualValues[playerId] = value;
       await writeRoom(room);
       local.room = room;
       render();
@@ -778,14 +1179,15 @@
     function rollResult(config, players) {
       const result = { players: [] };
 
-      // Side: balanced team split (not per-player coin flips), so a full
-      // room comes out even — 5 Attackers / 5 Defenders. "Off" excludes it
-      // from the draw entirely. "Manual" puts everyone on the chosen side.
+      // Side: "Off" excludes it from the draw entirely. "Manual" lets the
+      // host assign each player's side individually (any player left
+      // unassigned falls back to a random side so the draw still completes).
+      // Otherwise, teams are split into a balanced 5/5 (for a full room).
       let sideAssignments;
       if (config.side.mode === "off") {
         sideAssignments = players.map(() => null);
-      } else if (config.side.mode === "manual" && config.side.value) {
-        sideAssignments = players.map(() => config.side.value);
+      } else if (config.side.mode === "manual") {
+        sideAssignments = players.map(p => (config.side.manualValues && config.side.manualValues[p.id]) || pick(DATA.sides));
       } else {
         sideAssignments = assignBalancedSides(players);
       }
@@ -795,42 +1197,47 @@
         ? null
         : (config.map.mode === "manual" && config.map.value ? config.map.value : pick(DATA.maps));
 
-      // Role: manual = everyone gets the same locked-in value.
+      // Role: "Manual" lets the host assign each player's role/agent
+      // individually (unassigned players get a random pick from the pool).
       // Random = every player gets a different role/agent (cycling once the pool runs out).
       // Off = excluded from the draw entirely.
       let roleAssignments;
+      result.roleSubMode = config.role.mode === "off" ? null : config.role.subMode;
       if (config.role.mode === "off") {
         roleAssignments = players.map(() => null);
-      } else if (config.role.mode === "manual" && config.role.value) {
-        roleAssignments = players.map(() => config.role.value);
       } else {
         const pool = config.role.subMode === "agent" ? ALL_AGENTS : Object.keys(DATA.roles);
-        roleAssignments = assignDistinct(pool, players.length);
+        if (config.role.mode === "manual") {
+          roleAssignments = players.map(p => (config.role.manualValues && config.role.manualValues[p.id]) || pick(pool));
+        } else {
+          roleAssignments = assignDistinct(pool, players.length);
+        }
       }
 
       // Weapon: same idea as role.
       let weaponAssignments;
+      result.weaponSubMode = config.weapon.mode === "off" ? null : config.weapon.subMode;
       if (config.weapon.mode === "off") {
         weaponAssignments = players.map(() => null);
-      } else if (config.weapon.mode === "manual" && config.weapon.value) {
-        weaponAssignments = players.map(() => config.weapon.value);
       } else {
         const pool = config.weapon.subMode === "weapon" ? ALL_WEAPONS : Object.keys(DATA.weaponTypes);
-        weaponAssignments = assignDistinct(pool, players.length);
+        if (config.weapon.mode === "manual") {
+          weaponAssignments = players.map(p => (config.weapon.manualValues && config.weapon.manualValues[p.id]) || pick(pool));
+        } else {
+          weaponAssignments = assignDistinct(pool, players.length);
+        }
       }
 
       players.forEach((p, i) => {
         const side = sideAssignments[i];
         const role = roleAssignments[i];
-        const roleSub = role && config.role.subMode === "agent" ? AGENT_ROLE[role] : "Any agent in this role";
         const weapon = weaponAssignments[i];
-        const weaponSub = weapon && config.weapon.subMode === "weapon" ? WEAPON_TYPE[weapon] : "Any weapon of this type";
         result.players.push({
           id: p.id,
           nickname: p.nickname,
           side,
-          role, roleSub,
-          weapon, weaponSub
+          role,
+          weapon
         });
       });
 
@@ -877,10 +1284,12 @@
       if (local.screen === "landing") {
         app.innerHTML = renderLanding();
         bindLanding();
+        bindLangSwitch();
         return;
       }
       if (!local.room) {
-        app.innerHTML = `<div class="masthead"><h1>LOADOUT <span>DRAW</span></h1></div><p class="hint">Loading room…</p>`;
+        app.innerHTML = `<div class="masthead"><h1>LOADOUT <span>DRAW</span></h1>${langSwitcherHtml()}</div><p class="hint">${t('loadingRoom')}</p>`;
+        bindLangSwitch();
         return;
       }
       const phase = local.room.phase;
@@ -892,12 +1301,14 @@
       app.innerHTML = `
     <div class="masthead">
       <h1>LOADOUT <span>DRAW</span></h1>
-      <p>Room <strong style="color:var(--paper)">${local.room.code}</strong> · ${local.room.players.length}/${MAX_PLAYERS} players ${local.isHost ? "· you are the host" : ""}</p>
+      <p>${t('roomLabel')} <strong style="color:var(--paper)">${local.room.code}</strong> · ${t('playersCount', local.room.players.length, MAX_PLAYERS)} ${local.isHost ? "· " + t('youAreHost') : ""}</p>
+      ${langSwitcherHtml()}
     </div>
     ${body}
-    <button class="btn ghost" id="leaveBtn">Leave room</button>
+    <button class="btn ghost" id="leaveBtn">${t('leaveRoom')}</button>
   `;
       document.getElementById("leaveBtn").addEventListener("click", leaveRoom);
+      bindLangSwitch();
       bindPhase(phase);
     }
 
@@ -905,29 +1316,30 @@
       return `
     <div class="masthead">
       <h1>LOADOUT <span>DRAW</span></h1>
-      <p>Create a room and share the code, or join one your host gave you.</p>
+      <p>${t('subtitle')}</p>
+      ${langSwitcherHtml()}
     </div>
     <div class="tabs">
-      <button class="tab-btn ${local.tab === "create" ? "active" : ""}" data-tab="create">Create room</button>
-      <button class="tab-btn ${local.tab === "join" ? "active" : ""}" data-tab="join">Join room</button>
+      <button class="tab-btn ${local.tab === "create" ? "active" : ""}" data-tab="create">${t('tabCreate')}</button>
+      <button class="tab-btn ${local.tab === "join" ? "active" : ""}" data-tab="join">${t('tabJoin')}</button>
     </div>
     <div class="panel" style="--accent:var(--red)">
       ${local.tab === "create" ? `
         <div class="field">
-          <label>Your nickname</label>
-          <input id="nickInput" type="text" maxlength="20" placeholder="e.g. Jett_Main" value="${escapeHtml(local.nickname)}">
+          <label>${t('yourNickname')}</label>
+          <input id="nickInput" type="text" maxlength="20" placeholder="${escapeHtml(t('nicknamePlaceholder'))}" value="${escapeHtml(local.nickname)}">
         </div>
-        <button class="btn" id="createBtn">Create room</button>
+        <button class="btn" id="createBtn">${t('createRoomBtn')}</button>
       ` : `
         <div class="field">
-          <label>Room code</label>
+          <label>${t('roomCodeField')}</label>
           <input id="codeInput" type="text" maxlength="5" placeholder="ABCDE" value="${escapeHtml(local.joinCode)}" style="text-transform:uppercase; letter-spacing:3px;">
         </div>
         <div class="field">
-          <label>Your nickname</label>
-          <input id="nickInput" type="text" maxlength="20" placeholder="e.g. Jett_Main" value="${escapeHtml(local.nickname)}">
+          <label>${t('yourNickname')}</label>
+          <input id="nickInput" type="text" maxlength="20" placeholder="${escapeHtml(t('nicknamePlaceholder'))}" value="${escapeHtml(local.nickname)}">
         </div>
-        <button class="btn" id="joinBtn">Join room</button>
+        <button class="btn" id="joinBtn">${t('joinRoomBtn')}</button>
       `}
       ${local.error ? `<div class="error">${escapeHtml(local.error)}</div>` : ""}
     </div>
@@ -956,26 +1368,26 @@
         if (p) {
           const isHostSlot = p.id === room.hostId;
           const isYou = p.id === local.playerId;
-          slots.push(`<div class="slot filled ${isHostSlot ? "host-slot" : ""}">${escapeHtml(p.nickname)}${isHostSlot ? " ★" : ""}${isYou ? '<span class="you-tag">YOU</span>' : ""}</div>`);
+          slots.push(`<div class="slot filled ${isHostSlot ? "host-slot" : ""}">${escapeHtml(p.nickname)}${isHostSlot ? " ★" : ""}${isYou ? `<span class="you-tag">${t('you')}</span>` : ""}</div>`);
         } else {
-          slots.push(`<div class="slot empty">Open</div>`);
+          slots.push(`<div class="slot empty">${t('open')}</div>`);
         }
       }
       const full = room.players.length >= MAX_PLAYERS;
 
       return `
     <div class="code-display">
-      <div><div class="code-label">ROOM CODE — SHARE THIS</div><div class="code">${room.code}</div></div>
+      <div><div class="code-label">${t('roomCodeShare')}</div><div class="code">${room.code}</div></div>
     </div>
     <div class="panel" style="--accent:var(--teal)">
-      <div class="progress-label">${room.players.length} / ${MAX_PLAYERS} joined</div>
+      <div class="progress-label">${t('joined', room.players.length, MAX_PLAYERS)}</div>
       <div class="player-grid">${slots.join("")}</div>
       ${local.isHost ? `
         <button class="btn" id="configBtn" ${full ? "" : "disabled"}>
-          ${full ? "Set up randomizer" : `Waiting for ${MAX_PLAYERS - room.players.length} more`}
+          ${full ? t('setupRandomizer') : t('waitingForMore', MAX_PLAYERS - room.players.length)}
         </button>
-        ${!full && room.players.length >= 2 ? `<div><button class="btn ghost" id="skipBtn">Start now with ${room.players.length} players instead</button></div>` : ""}
-      ` : `<div class="hint">Waiting for the host to start setup once everyone's in…</div>`}
+        ${!full && room.players.length >= 2 ? `<div><button class="btn ghost" id="skipBtn">${t('startNowWith', room.players.length)}</button></div>` : ""}
+      ` : `<div class="hint">${t('waitingHostStart')}</div>`}
     </div>
   `;
     }
@@ -1008,13 +1420,13 @@
         return `
       <div class="panel" style="--accent:var(--teal)">
         <div class="waiting-box">
-          <div><span class="pulse"></span>Host is setting up the randomizer…</div>
+          <div><span class="pulse"></span>${t('hostSettingUp')}</div>
         </div>
         <div class="readonly-config">
-          ${configSummaryLine("side", "Side", cfg.side, null)}
-          ${configSummaryLine("role", "Role", cfg.role, cfg.role.subMode)}
-          ${configSummaryLine("weapon", "Weapon", cfg.weapon, cfg.weapon.subMode)}
-          ${configSummaryLine("map", "Map", cfg.map, null)}
+          ${configSummaryLine("side", cfg.side, null)}
+          ${configSummaryLine("role", cfg.role, cfg.role.subMode)}
+          ${configSummaryLine("weapon", cfg.weapon, cfg.weapon.subMode)}
+          ${configSummaryLine("map", cfg.map, null)}
         </div>
       </div>
     `;
@@ -1022,64 +1434,91 @@
 
       return `
     <div class="panel" style="--accent:var(--red)">
-      <h3 style="margin-bottom:6px;">Set up the draw</h3>
-      <p class="hint" style="margin-top:0;">For each category, randomize it or lock in a manual value.</p>
-      ${configRow("side", "Side", cfg.side, null)}
-      ${configRow("role", "Role", cfg.role, cfg.role.subMode, [
-        { key: "role", label: "By role" }, { key: "agent", label: "By agent" }
-      ])}
-      ${configRow("weapon", "Weapon", cfg.weapon, cfg.weapon.subMode, [
-        { key: "type", label: "By type" }, { key: "weapon", label: "By weapon" }
-      ])}
-      ${configRow("map", "Map", cfg.map, null)}
-      <button class="btn" id="randomizeBtn" style="margin-top:16px;">Randomize</button>
+      <h3 style="margin-bottom:6px;">${t('setUpDraw')}</h3>
+      <p class="hint" style="margin-top:0;">${t('setUpDrawHint')}</p>
+      ${configRow("side", cfg.side, null, null, room.players)}
+      ${configRow("role", cfg.role, cfg.role.subMode, [
+        { key: "role", labelKey: "byRole" }, { key: "agent", labelKey: "byAgent" }
+      ], room.players)}
+      ${configRow("weapon", cfg.weapon, cfg.weapon.subMode, [
+        { key: "type", labelKey: "byType" }, { key: "weapon", labelKey: "byWeapon" }
+      ], room.players)}
+      ${configRow("map", cfg.map, null, null, null)}
+      <button class="btn" id="randomizeBtn" style="margin-top:16px;">${t('randomizeBtn')}</button>
     </div>
   `;
     }
 
-    function configSummaryLine(category, label, catCfg, subMode) {
+    function configSummaryLine(category, catCfg, subMode) {
       let valueText;
       if (catCfg.mode === "off") {
-        valueText = "Off";
-      } else if (catCfg.mode === "manual" && catCfg.value) {
-        valueText = catCfg.value;
+        valueText = t('off');
+      } else if (catCfg.mode === "manual") {
+        if (category === "map") {
+          valueText = catCfg.value ? translateOption(category, subMode, catCfg.value) : t('choose');
+        } else {
+          valueText = t('manualPerPlayer');
+        }
       } else if (category === "side") {
-        valueText = "Balanced teams";
+        valueText = t('randomBalanced');
       } else {
-        valueText = subMode ? `Random (${subMode === "agent" || subMode === "weapon" ? "individual" : "category"})` : "Random";
+        valueText = subMode ? (subMode === "agent" || subMode === "weapon" ? t('randomIndividual') : t('randomCategory')) : t('random');
       }
-      return `<div><span>${label}</span><span class="v">${escapeHtml(valueText)}</span></div>`;
+      return `<div><span>${t(category)}</span><span class="v">${escapeHtml(valueText)}</span></div>`;
     }
 
-    function configRow(category, label, catCfg, subMode, subOptions) {
+    function configRow(category, catCfg, subMode, subOptions, players) {
       const options = categoryOptionsFor(category, subMode);
       const isOff = catCfg.mode === "off";
+      const isManual = catCfg.mode === "manual";
+      const perPlayer = category !== "map"; // side/role/weapon assign per player; map is room-wide
+
+      let valueArea;
+      if (isOff) {
+        valueArea = `<div class="hint" style="margin-top:0;">${t('notIncluded')}</div>`;
+      } else if (isManual && perPlayer) {
+        const manualValues = catCfg.manualValues || {};
+        valueArea = `
+          <div class="manual-player-list">
+            ${players.map(p => `
+              <div class="manual-player-row">
+                <span class="mpr-name">${escapeHtml(p.nickname)}</span>
+                <select data-manual-player-select="${category}" data-player-id="${p.id}">
+                  <option value="">${t('choose')}</option>
+                  ${options.map(o => `<option value="${escapeHtml(o)}" ${manualValues[p.id] === o ? "selected" : ""}>${escapeHtml(translateOption(category, subMode, o))}</option>`).join("")}
+                </select>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      } else if (isManual && !perPlayer) {
+        valueArea = `
+          <select data-value-select="${category}">
+            <option value="">${t('choose')}</option>
+            ${options.map(o => `<option value="${escapeHtml(o)}" ${catCfg.value === o ? "selected" : ""}>${escapeHtml(translateOption(category, subMode, o))}</option>`).join("")}
+          </select>
+        `;
+      } else {
+        valueArea = `<div class="hint" style="margin-top:0;">${category === "side" ? t('teamsBalanced') : t('rolledAtRandomize')}</div>`;
+      }
+
       return `
-    <div class="config-row ${isOff ? "is-off" : ""}">
-      <div class="cat-name">${label}</div>
+    <div class="config-row ${isOff ? "is-off" : ""} ${isManual && perPlayer ? "manual-expanded" : ""}">
+      <div class="cat-name">${t(category)}</div>
       <div>
         <div class="mini-toggle" data-mode-toggle="${category}">
-          <button data-mode="random" class="${catCfg.mode === "random" ? "active" : ""}">Random</button>
-          <button data-mode="manual" class="${catCfg.mode === "manual" ? "active" : ""}">Manual</button>
-          <button data-mode="off" class="${isOff ? "active" : ""}">Off</button>
+          <button data-mode="random" class="${catCfg.mode === "random" ? "active" : ""}">${t('random')}</button>
+          <button data-mode="manual" class="${isManual ? "active" : ""}">${t('manual')}</button>
+          <button data-mode="off" class="${isOff ? "active" : ""}">${t('off')}</button>
         </div>
         ${subOptions && !isOff ? `
           <div class="mini-toggle" data-sub-toggle="${category}" style="margin-top:6px;">
-            ${subOptions.map(o => `<button data-sub="${o.key}" class="${subMode === o.key ? "active" : ""}">${o.label}</button>`).join("")}
+            ${subOptions.map(o => `<button data-sub="${o.key}" class="${subMode === o.key ? "active" : ""}">${t(o.labelKey)}</button>`).join("")}
           </div>
         ` : ""}
       </div>
       <div>
-        ${isOff
-          ? `<div class="hint" style="margin-top:0;">Won't be included in the draw</div>`
-          : catCfg.mode === "manual"
-            ? `
-          <select data-value-select="${category}">
-            <option value="">Choose…</option>
-            ${options.map(o => `<option value="${escapeHtml(o)}" ${catCfg.value === o ? "selected" : ""}>${escapeHtml(o)}</option>`).join("")}
-          </select>
-        `
-            : `<div class="hint" style="margin-top:0;">${category === "side" ? "Teams balanced automatically" : "Rolled at randomize time"}</div>`}
+        ${valueArea}
       </div>
     </div>
   `;
@@ -1102,8 +1541,38 @@
         const category = sel.dataset.valueSelect;
         sel.addEventListener("change", e => updateConfigValue(category, e.target.value));
       });
+      document.querySelectorAll("[data-manual-player-select]").forEach(sel => {
+        const category = sel.dataset.manualPlayerSelect;
+        const playerId = sel.dataset.playerId;
+        sel.addEventListener("change", e => updateConfigManualValue(category, playerId, e.target.value));
+      });
       const randomizeBtn = document.getElementById("randomizeBtn");
       if (randomizeBtn) randomizeBtn.addEventListener("click", doRandomize);
+    }
+
+    function playerResultCard(p, roleSubMode, weaponSubMode) {
+      const isYou = p.id === local.playerId;
+      const roleVal = p.role ? translateOption("role", roleSubMode, p.role) : null;
+      const roleSub = p.role
+        ? (roleSubMode === "agent" ? translateOption("role", "role", AGENT_ROLE[p.role]) : t('anyAgentInRole'))
+        : null;
+      const weaponVal = p.weapon ? translateOption("weapon", weaponSubMode, p.weapon) : null;
+      const weaponSub = p.weapon
+        ? (weaponSubMode === "weapon" ? translateOption("weapon", "type", WEAPON_TYPE[p.weapon]) : t('anyWeaponOfType'))
+        : null;
+      const sideLabel = p.side ? translateOption("side", null, p.side) : null;
+
+      const rows = [
+        p.role ? `<div class="pr-row"><span class="pr-tag">${t('role')}</span><span class="pr-val">${escapeHtml(roleVal)}</span><span class="pr-sub">${escapeHtml(roleSub)}</span></div>` : "",
+        p.weapon ? `<div class="pr-row"><span class="pr-tag">${t('weapon')}</span><span class="pr-val">${escapeHtml(weaponVal)}</span><span class="pr-sub">${escapeHtml(weaponSub)}</span></div>` : ""
+      ].join("");
+
+      return `
+      <div class="player-result ${p.side ? "side-" + p.side.toLowerCase() : ""}">
+        <div class="pr-name">${escapeHtml(p.nickname)}${isYou ? `<span class="you-tag">${t('you')}</span>` : ""}${p.side ? `<span class="side-tag side-${p.side.toLowerCase()}">${escapeHtml(sideLabel)}</span>` : ""}</div>
+        ${rows || `<div class="pr-row"><span class="pr-sub">${t('noCategoriesRolled')}</span></div>`}
+      </div>
+    `;
     }
 
     function renderResult() {
@@ -1112,36 +1581,43 @@
       const sideCounts = {};
       r.players.forEach(p => { if (p.side) sideCounts[p.side] = (sideCounts[p.side] || 0) + 1; });
       const sideEnabled = Object.keys(sideCounts).length > 0;
-      const sideSummary = Object.entries(sideCounts).map(([side, n]) => `${n} ${side}`).join(" · ");
+      const sideSummary = Object.entries(sideCounts).map(([side, n]) => `${n} ${translateOption("side", null, side)}`).join(" · ");
 
-      const playerCards = r.players.map(p => {
-        const isYou = p.id === local.playerId;
-        const rows = [
-          p.role ? `<div class="pr-row"><span class="pr-tag">Role</span><span class="pr-val">${escapeHtml(p.role)}</span><span class="pr-sub">${escapeHtml(p.roleSub)}</span></div>` : "",
-          p.weapon ? `<div class="pr-row"><span class="pr-tag">Weapon</span><span class="pr-val">${escapeHtml(p.weapon)}</span><span class="pr-sub">${escapeHtml(p.weaponSub)}</span></div>` : ""
-        ].join("");
-        return `
-      <div class="player-result ${p.side ? "side-" + p.side.toLowerCase() : ""}">
-        <div class="pr-name">${escapeHtml(p.nickname)}${isYou ? '<span class="you-tag">YOU</span>' : ""}${p.side ? `<span class="side-tag side-${p.side.toLowerCase()}">${escapeHtml(p.side)}</span>` : ""}</div>
-        ${rows || `<div class="pr-row"><span class="pr-sub">No categories rolled</span></div>`}
+      let resultsHtml;
+      if (sideEnabled) {
+        // Attackers on the left, defenders on the right.
+        const attackers = r.players.filter(p => p.side === "Attacker");
+        const defenders = r.players.filter(p => p.side === "Defender");
+        const unassigned = r.players.filter(p => p.side !== "Attacker" && p.side !== "Defender");
+        resultsHtml = `
+      <div class="side-columns">
+        <div class="side-column">
+          <div class="side-col-heading side-attacker">${t('attackers')}</div>
+          ${attackers.map(p => playerResultCard(p, r.roleSubMode, r.weaponSubMode)).join("") || `<p class="hint">—</p>`}
+        </div>
+        <div class="side-column">
+          <div class="side-col-heading side-defender">${t('defenders')}</div>
+          ${defenders.map(p => playerResultCard(p, r.roleSubMode, r.weaponSubMode)).join("") || `<p class="hint">—</p>`}
+        </div>
       </div>
+      ${unassigned.length ? `<div class="player-results" style="margin-top:10px;">${unassigned.map(p => playerResultCard(p, r.roleSubMode, r.weaponSubMode)).join("")}</div>` : ""}
     `;
-      }).join("");
+      } else {
+        resultsHtml = `<div class="player-results">${r.players.map(p => playerResultCard(p, r.roleSubMode, r.weaponSubMode)).join("")}</div>`;
+      }
 
       return `
     ${r.map || sideEnabled ? `
     <div class="ticket">
-      <h3 style="color:var(--paper-dim); font-size:14px; letter-spacing:1.5px;">RESULT IS IN</h3>
+      <h3 style="color:var(--paper-dim); font-size:14px; letter-spacing:1.5px;">${t('resultIsIn')}</h3>
       <div class="ticket-rows" style="grid-template-columns: repeat(${r.map && sideEnabled ? 2 : 1}, 1fr);">
-        ${sideEnabled ? `<div class="ticket-item" ${!r.map ? 'style="border-left:none; padding-left:0;"' : ""}><div class="tag">Teams</div><div class="val" style="font-size:17px;">${escapeHtml(sideSummary)}</div></div>` : ""}
-        ${r.map ? `<div class="ticket-item" ${!sideEnabled ? 'style="border-left:none; padding-left:0;"' : ""}><div class="tag">Map</div><div class="val">${escapeHtml(r.map)}</div></div>` : ""}
+        ${sideEnabled ? `<div class="ticket-item" ${!r.map ? 'style="border-left:none; padding-left:0;"' : ""}><div class="tag">${t('teams')}</div><div class="val" style="font-size:17px;">${escapeHtml(sideSummary)}</div></div>` : ""}
+        ${r.map ? `<div class="ticket-item" ${!sideEnabled ? 'style="border-left:none; padding-left:0;"' : ""}><div class="tag">${t('map')}</div><div class="val">${escapeHtml(r.map)}</div></div>` : ""}
       </div>
     </div>
-    ` : `<h3 style="color:var(--paper-dim); font-size:14px; letter-spacing:1.5px;">RESULT IS IN</h3>`}
-    <div class="player-results">
-      ${playerCards}
-    </div>
-    ${local.isHost ? `<button class="btn secondary" id="backBtn" style="margin-top:14px;">Adjust & randomize again</button>` : `<p class="hint">Waiting for the host if they redraw…</p>`}
+    ` : `<h3 style="color:var(--paper-dim); font-size:14px; letter-spacing:1.5px;">${t('resultIsIn')}</h3>`}
+    ${resultsHtml}
+    ${local.isHost ? `<button class="btn secondary" id="backBtn" style="margin-top:14px;">${t('adjustRandomizeAgain')}</button>` : `<p class="hint">${t('waitingHostRedraw')}</p>`}
   `;
     }
 
