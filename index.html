@@ -242,6 +242,39 @@
       letter-spacing: 1px;
     }
 
+    .copy-code-btn {
+      font-family: 'Oswald', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--paper);
+      padding: 8px 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .copy-code-btn:hover {
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+
+    .copy-code-btn.copied {
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+
+    .copy-code-btn svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
     /* ---- player grid ---- */
     .player-grid {
       display: grid;
@@ -683,7 +716,17 @@
 <body>
   <div class="wrap" id="app"></div>
 
-  <script>
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    /* ---------------- supabase ---------------- */
+    // Public/publishable (anon) key — safe to ship in client code as long as
+    // Row Level Security policies on the `rooms` table are what actually
+    // gate access (see the SQL migration this was set up with).
+    const SUPABASE_URL = "https://ydlipcddluppspokcpvq.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_L5-CFrPnH6WJLkJUv1jBKg_QpyK0ghl";
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
     /* ---------------- data ---------------- */
     const DATA = {
       sides: ["Attacker", "Defender"],
@@ -735,6 +778,8 @@
         creating: "Creating…",
         joining: "Joining…",
         roomCodeShare: "ROOM CODE — SHARE THIS",
+        copyCode: "Copy",
+        copyCodeCopied: "Copied!",
         joined: (n, max) => `${n} / ${max} joined`,
         open: "Open",
         you: "YOU",
@@ -799,6 +844,8 @@
         creating: "作成中…",
         joining: "参加中…",
         roomCodeShare: "ルームコード — これを共有",
+        copyCode: "コピー",
+        copyCodeCopied: "コピーしました！",
         joined: (n, max) => `${n} / ${max} 人参加`,
         open: "空き",
         you: "自分",
@@ -863,6 +910,8 @@
         creating: "만드는 중…",
         joining: "참가하는 중…",
         roomCodeShare: "방 코드 — 이걸 공유하세요",
+        copyCode: "복사",
+        copyCodeCopied: "복사됨!",
         joined: (n, max) => `${n} / ${max}명 참가`,
         open: "빈 자리",
         you: "나",
@@ -985,7 +1034,8 @@
       error: "",
       pollTimer: null,
       lang: detectSavedLang(),
-      busy: false        // true while a create/join request is in flight, to block spam-clicks
+      busy: false,        // true while a create/join request is in flight, to block spam-clicks
+      lastHeartbeatWrite: null   // timestamp of the last heartbeat write, so a fresh rejoin doesn't immediately re-fire one
     };
 
     function setLang(lang) {
@@ -1011,13 +1061,19 @@
       });
     }
 
-    /* ---------------- storage helpers ---------------- */
+    /* ---------------- storage helpers ----------------
+       Rooms live in a Supabase `rooms` table: `code` (text, primary key)
+       and `data` (jsonb, the full room object). See the SQL migration
+       provided alongside this file for schema + RLS policies. */
     async function readRoom(code) {
       try {
-        const res = await fetch(`/api/room?code=${encodeURIComponent(code)}`);
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data.room || null;
+        const { data, error } = await supabase
+          .from("rooms")
+          .select("data")
+          .eq("code", code)
+          .maybeSingle();
+        if (error || !data) return null;
+        return data.data || null;
       } catch (e) {
         return null;
       }
@@ -1025,12 +1081,13 @@
     async function writeRoom(room) {
       room.updatedAt = Date.now();
       try {
-        const res = await fetch(`/api/room`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(room)
-        });
-        return res.ok;
+        const { error } = await supabase
+          .from("rooms")
+          .upsert(
+            { code: room.code, data: room, updated_at: new Date().toISOString() },
+            { onConflict: "code" }
+          );
+        return !error;
       } catch (e) {
         return false;
       }
@@ -1148,10 +1205,24 @@
         }
         setStoredPlayerId(code, id);
         setActiveRoomCode(code);
+
+        // Re-fetch the room from the server rather than trusting our own
+        // optimistic copy of it. If the write above didn't actually persist
+        // (auth/permissions issue, dropped write, stale cache, etc.) this
+        // catches it here as a visible error instead of silently showing a
+        // player list that doesn't match what the server actually has.
+        const confirmedRoom = await readRoom(code);
+        if (!confirmedRoom || !confirmedRoom.players.find(p => p.id === id)) {
+          clearStoredPlayerId(code);
+          clearActiveRoomCode();
+          local.error = t('errJoinFail');
+          return;
+        }
+
         local.playerId = id;
         local.roomCode = code;
         local.isHost = false;
-        local.room = room;
+        local.room = confirmedRoom;
         local.screen = "in-room";
         local.error = "";
         startPolling();
@@ -1462,6 +1533,10 @@
       return `
     <div class="code-display">
       <div><div class="code-label">${t('roomCodeShare')}</div><div class="code">${room.code}</div></div>
+      <button class="copy-code-btn" id="copyCodeBtn" type="button" data-code="${escapeHtml(room.code)}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="1"></rect><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"></path></svg>
+        <span id="copyCodeLabel">${t('copyCode')}</span>
+      </button>
     </div>
     <div class="panel" style="--accent:var(--teal)">
       <div class="progress-label">${t('joined', room.players.length, MAX_PLAYERS)}</div>
@@ -1476,12 +1551,49 @@
   `;
     }
 
+    async function copyRoomCode(code, btn) {
+      const label = document.getElementById("copyCodeLabel");
+      let ok = false;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(code);
+          ok = true;
+        }
+      } catch (e) { /* fall through to legacy path below */ }
+      if (!ok) {
+        // Fallback for browsers/contexts without the async Clipboard API
+        // (e.g. non-HTTPS, or older WebViews).
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = code;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          ok = document.execCommand("copy");
+          document.body.removeChild(ta);
+        } catch (e) { ok = false; }
+      }
+      if (ok && btn && label) {
+        btn.classList.add("copied");
+        const prevText = label.textContent;
+        label.textContent = t('copyCodeCopied');
+        setTimeout(() => {
+          btn.classList.remove("copied");
+          label.textContent = prevText;
+        }, 1500);
+      }
+    }
+
     function bindPhase(phase) {
       if (phase === "lobby") {
         const configBtn = document.getElementById("configBtn");
         if (configBtn) configBtn.addEventListener("click", goToConfig);
         const skipBtn = document.getElementById("skipBtn");
         if (skipBtn) skipBtn.addEventListener("click", goToConfig);
+        const copyCodeBtn = document.getElementById("copyCodeBtn");
+        if (copyCodeBtn) copyCodeBtn.addEventListener("click", () => copyRoomCode(copyCodeBtn.dataset.code, copyCodeBtn));
       } else if (phase === "configuring") {
         bindConfig();
       } else if (phase === "result") {
@@ -1721,11 +1833,24 @@
     // reconnect to it before showing the landing screen — this is what
     // makes a refresh or a reopened tab drop the player straight back into
     // their lobby instead of making them re-enter their nickname and code.
+    // If a shared invite link brought the player here (e.g. ?code=ABCD)
+    // and we're not silently rejoining anything, pre-fill the join tab
+    // with that code so they just need to enter a nickname.
+    function prefillJoinFromUrl() {
+      let inviteCode;
+      try {
+        inviteCode = new URLSearchParams(window.location.search).get("code");
+      } catch (e) { return; }
+      if (!inviteCode) return;
+      local.tab = "join";
+      local.joinCode = inviteCode.trim().toUpperCase();
+    }
+
     async function attemptRejoin() {
       const code = getActiveRoomCode();
-      if (!code) { render(); return; }
+      if (!code) { prefillJoinFromUrl(); render(); return; }
       const storedId = getStoredPlayerId(code);
-      if (!storedId) { clearActiveRoomCode(); render(); return; }
+      if (!storedId) { clearActiveRoomCode(); prefillJoinFromUrl(); render(); return; }
 
       // Show the existing "Loading room…" screen while we check the server.
       local.screen = "in-room";
@@ -1741,6 +1866,7 @@
         clearActiveRoomCode();
         local.screen = "landing";
         local.roomCode = null;
+        prefillJoinFromUrl();
         render();
         return;
       }
@@ -1752,6 +1878,7 @@
         clearActiveRoomCode();
         local.screen = "landing";
         local.roomCode = null;
+        prefillJoinFromUrl();
         render();
         return;
       }
@@ -1762,6 +1889,10 @@
       local.room = room;
       local.nickname = player.nickname;
       local.error = "";
+      // Mark that we just synced with the server via this rejoin, so any
+      // heartbeat logic doesn't treat this fresh state as stale and
+      // immediately fire off another write on top of it.
+      local.lastHeartbeatWrite = Date.now();
       startPolling();
       render();
     }
