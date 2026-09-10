@@ -522,7 +522,7 @@
 
     .pr-row {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       gap: 8px;
       padding: 4px 0;
       border-top: 1px solid var(--line);
@@ -584,21 +584,48 @@
       opacity: 0.55;
     }
 
-    /* ---- raw select used outside .field (map's single-value manual picker) ---- */
-    select[data-value-select] {
-      width: 100%;
-      background: var(--ink);
-      border: 1px solid var(--line);
-      color: var(--paper);
+    /* ---- option icons: small colored monogram badges ---- */
+    .opt-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      margin-right: 6px;
       font-family: 'Rajdhani', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 8px 10px;
+      font-weight: 700;
+      font-size: 9px;
+      letter-spacing: 0;
+      background: var(--panel);
+      border: 1px solid var(--icon-color);
+      color: var(--icon-color);
+      vertical-align: middle;
     }
 
-    select[data-value-select]:focus {
-      outline: none;
-      border-color: var(--red);
+    .opt-icon-circle {
+      border-radius: 50%;
+    }
+
+    .opt-icon-square {
+      border-radius: 3px;
+    }
+
+    .opt-icon-diamond {
+      border-radius: 3px;
+      transform: rotate(45deg);
+    }
+
+    .opt-icon-diamond .opt-icon-label {
+      display: inline-block;
+      transform: rotate(-45deg);
+    }
+
+    img.opt-icon-agent {
+      border-color: var(--line);
+      object-fit: cover;
+      padding: 0;
+      background: var(--panel);
     }
 
     /* ---- per-player manual assignment: drag-and-drop ---- */
@@ -618,6 +645,9 @@
     }
 
     .option-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       background: var(--panel-raised);
       border: 1px solid var(--line);
       color: var(--paper);
@@ -682,6 +712,9 @@
     }
 
     .manual-drop-zone .mpr-value {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       flex: 1;
       font-size: 13px;
       font-weight: 600;
@@ -704,6 +737,37 @@
 
     .manual-drop-zone .mpr-clear:hover {
       color: var(--red);
+    }
+
+    /* ---- map manual selection: clickable tiles ---- */
+    .map-picker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .map-tile {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--panel-raised);
+      border: 1px solid var(--line);
+      color: var(--paper);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+
+    .map-tile:hover {
+      border-color: var(--paper-dim);
+    }
+
+    .map-tile.selected {
+      border-color: var(--red);
+      color: var(--red);
+      background: var(--red-dim);
     }
 
     @media (min-width:601px) {
@@ -1042,8 +1106,7 @@
       }
     };
 
-    // Category-level display names (side, role group, weapon type). Specific
-    // agent/weapon/map names are intentionally left untranslated.
+    // Category-level display names (side, role group, weapon type).
     const SIDE_LABELS = {
       en: { Attacker: "Attacker", Defender: "Defender" },
       ja: { Attacker: "アタッカー", Defender: "ディフェンダー" },
@@ -1060,6 +1123,27 @@
       ko: { Sidearm: "사이드암", SMG: "SMG", Shotgun: "샷건", Rifle: "라이플", "Sniper Rifle": "스나이퍼 라이플", "Machine Gun": "머신건" }
     };
 
+    // Individual agent/weapon/map names. These are proper nouns that Riot's
+    // own localization keeps as the same name, just written in the local
+    // script (katakana for Japanese, hangul for Korean) rather than
+    // translating the meaning — so that's what these do too. "en" entries
+    // are identity mappings, kept for a uniform lookup shape.
+    const AGENT_LABELS = {
+      en: { Jett: "Jett", Phoenix: "Phoenix", Reyna: "Reyna", Raze: "Raze", Yoru: "Yoru", Neon: "Neon", Iso: "Iso", Waylay: "Waylay", Sova: "Sova", Breach: "Breach", Skye: "Skye", "KAY/O": "KAY/O", Fade: "Fade", Gekko: "Gekko", Tejo: "Tejo", Brimstone: "Brimstone", Viper: "Viper", Omen: "Omen", Astra: "Astra", Harbor: "Harbor", Clove: "Clove", Killjoy: "Killjoy", Cypher: "Cypher", Sage: "Sage", Chamber: "Chamber", Deadlock: "Deadlock", Vyse: "Vyse" },
+      ja: { Jett: "ジェット", Phoenix: "フェニックス", Reyna: "レイナ", Raze: "レイズ", Yoru: "ヨル", Neon: "ネオン", Iso: "アイソ", Waylay: "ウェイレイ", Sova: "ソーヴァ", Breach: "ブリーチ", Skye: "スカイ", "KAY/O": "ケイオー", Fade: "フェイド", Gekko: "ゲッコー", Tejo: "テホ", Brimstone: "ブリムストーン", Viper: "ヴァイパー", Omen: "オーメン", Astra: "アストラ", Harbor: "ハーバー", Clove: "クローヴ", Killjoy: "キルジョイ", Cypher: "サイファー", Sage: "セージ", Chamber: "チェンバー", Deadlock: "デッドロック", Vyse: "ヴァイス" },
+      ko: { Jett: "제트", Phoenix: "피닉스", Reyna: "레이나", Raze: "레이즈", Yoru: "요루", Neon: "네온", Iso: "아이소", Waylay: "웨이레이", Sova: "소바", Breach: "브리치", Skye: "스카이", "KAY/O": "케이오", Fade: "페이드", Gekko: "게코", Tejo: "테호", Brimstone: "브림스톤", Viper: "바이퍼", Omen: "오멘", Astra: "아스트라", Harbor: "하버", Clove: "클로브", Killjoy: "킬조이", Cypher: "사이퍼", Sage: "세이지", Chamber: "체임버", Deadlock: "데드록", Vyse: "바이스" }
+    };
+    const WEAPON_LABELS = {
+      en: { Classic: "Classic", Shorty: "Shorty", Frenzy: "Frenzy", Ghost: "Ghost", Sheriff: "Sheriff", Stinger: "Stinger", Spectre: "Spectre", Bucky: "Bucky", Judge: "Judge", Bulldog: "Bulldog", Guardian: "Guardian", Phantom: "Phantom", Vandal: "Vandal", Marshal: "Marshal", Outlaw: "Outlaw", Operator: "Operator", Ares: "Ares", Odin: "Odin" },
+      ja: { Classic: "クラシック", Shorty: "ショーティ", Frenzy: "フレンジー", Ghost: "ゴースト", Sheriff: "シェリフ", Stinger: "スティンガー", Spectre: "スペクター", Bucky: "バッキー", Judge: "ジャッジ", Bulldog: "ブルドッグ", Guardian: "ガーディアン", Phantom: "ファントム", Vandal: "ヴァンダル", Marshal: "マーシャル", Outlaw: "アウトロー", Operator: "オペレーター", Ares: "アレス", Odin: "オーディン" },
+      ko: { Classic: "클래식", Shorty: "쇼티", Frenzy: "프렌지", Ghost: "고스트", Sheriff: "쉐리프", Stinger: "스팅어", Spectre: "스펙터", Bucky: "버키", Judge: "저지", Bulldog: "불독", Guardian: "가디언", Phantom: "팬텀", Vandal: "밴달", Marshal: "마샬", Outlaw: "아웃로", Operator: "오퍼레이터", Ares: "아레스", Odin: "오딘" }
+    };
+    const MAP_LABELS = {
+      en: { Ascent: "Ascent", Bind: "Bind", Haven: "Haven", Split: "Split", Icebox: "Icebox", Breeze: "Breeze", Fracture: "Fracture", Pearl: "Pearl", Lotus: "Lotus", Sunset: "Sunset", Abyss: "Abyss", Corrode: "Corrode" },
+      ja: { Ascent: "アセント", Bind: "バインド", Haven: "ヘイヴン", Split: "スプリット", Icebox: "アイスボックス", Breeze: "ブリーズ", Fracture: "フラクチャー", Pearl: "パール", Lotus: "ロータス", Sunset: "サンセット", Abyss: "アビス", Corrode: "コロード" },
+      ko: { Ascent: "어센트", Bind: "바인드", Haven: "헤이븐", Split: "스플릿", Icebox: "아이스박스", Breeze: "브리즈", Fracture: "프랙처", Pearl: "펄", Lotus: "로터스", Sunset: "선셋", Abyss: "어비스", Corrode: "코로드" }
+    };
+
     function t(key, ...args) {
       const dict = STRINGS[local.lang] || STRINGS.en;
       const entry = dict[key] !== undefined ? dict[key] : STRINGS.en[key];
@@ -1068,13 +1152,72 @@
 
     // Translates a raw stored value (which is always the English game name,
     // used internally for logic/CSS classes) into the current display
-    // language. Individual agent/weapon/map names pass through unchanged.
+    // language.
     function translateOption(category, subMode, value) {
       if (!value) return value;
       if (category === "side") return (SIDE_LABELS[local.lang] && SIDE_LABELS[local.lang][value]) || value;
-      if (category === "role") return subMode === "agent" ? value : ((ROLE_LABELS[local.lang] && ROLE_LABELS[local.lang][value]) || value);
-      if (category === "weapon") return subMode === "weapon" ? value : ((WEAPON_TYPE_LABELS[local.lang] && WEAPON_TYPE_LABELS[local.lang][value]) || value);
+      if (category === "role") {
+        return subMode === "agent"
+          ? (AGENT_LABELS[local.lang] && AGENT_LABELS[local.lang][value]) || value
+          : (ROLE_LABELS[local.lang] && ROLE_LABELS[local.lang][value]) || value;
+      }
+      if (category === "weapon") {
+        return subMode === "weapon"
+          ? (WEAPON_LABELS[local.lang] && WEAPON_LABELS[local.lang][value]) || value
+          : (WEAPON_TYPE_LABELS[local.lang] && WEAPON_TYPE_LABELS[local.lang][value]) || value;
+      }
+      if (category === "map") return (MAP_LABELS[local.lang] && MAP_LABELS[local.lang][value]) || value;
       return value;
+    }
+
+    // ---- small original iconography for options (not game assets) ----
+    // A shared 6-color palette cycles across each category's own list, so
+    // items in the same group (e.g. two Controllers, two Rifles) are visually
+    // distinguishable without needing bespoke art per item.
+    const ICON_PALETTE = ["#FF4655", "#5FA8A0", "#F0C75E", "#9B7FE0", "#E8823C", "#7FB3E8"];
+    function paletteColor(i) {
+      return ICON_PALETTE[((i % ICON_PALETTE.length) + ICON_PALETTE.length) % ICON_PALETTE.length];
+    }
+    function initialsOf(str) {
+      return String(str).replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase() || "?";
+    }
+    // Returns a small colored monogram badge for a specific option value.
+    // Shape signals the kind of thing (circle = person/side, square =
+    // weapon, diamond = map); color groups it with its parent category
+    // (an agent's color matches its role, a weapon's matches its type).
+    function optionIcon(category, subMode, value) {
+      if (!value) return "";
+      if (category === "role" && subMode === "agent") {
+        const slug = agentImageSlug(value);
+        return `<img class="opt-icon opt-icon-circle opt-icon-agent" src="images/agents/${slug}.webp" alt="${escapeHtml(value)}" aria-hidden="true">`;
+      }
+      let shape, color;
+      if (category === "side") {
+        shape = "circle";
+        color = value === "Attacker" ? "var(--red)" : "var(--teal)";
+      } else if (category === "role") {
+        shape = "circle";
+        const roleName = subMode === "agent" ? AGENT_ROLE[value] : value;
+        color = paletteColor(Object.keys(DATA.roles).indexOf(roleName));
+      } else if (category === "weapon") {
+        shape = "square";
+        const typeName = subMode === "weapon" ? WEAPON_TYPE[value] : value;
+        color = paletteColor(Object.keys(DATA.weaponTypes).indexOf(typeName));
+      } else if (category === "map") {
+        shape = "diamond";
+        color = paletteColor(DATA.maps.indexOf(value));
+      } else {
+        return "";
+      }
+      return `<span class="opt-icon opt-icon-${shape}" style="--icon-color:${color}" aria-hidden="true"><span class="opt-icon-label">${escapeHtml(initialsOf(value))}</span></span>`;
+    }
+
+    // Maps an agent name to the filename (without extension) used under
+    // images/agents/. KAY/O's slash isn't filename-safe, so that one agent
+    // uses "kay:o" instead; every other agent is just its lowercase name.
+    function agentImageSlug(agent) {
+      if (agent === "KAY/O") return "kay:o";
+      return agent.toLowerCase();
     }
 
     function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -1731,11 +1874,13 @@
 
     function configSummaryLine(category, catCfg, subMode) {
       let valueText;
+      let icon = "";
       if (catCfg.mode === "off") {
         valueText = t('off');
       } else if (catCfg.mode === "manual") {
         if (category === "map") {
           valueText = catCfg.value ? translateOption(category, subMode, catCfg.value) : t('choose');
+          icon = optionIcon(category, subMode, catCfg.value);
         } else {
           valueText = t('manualPerPlayer');
         }
@@ -1744,7 +1889,7 @@
       } else {
         valueText = subMode ? (subMode === "agent" || subMode === "weapon" ? t('randomIndividual') : t('randomCategory')) : t('random');
       }
-      return `<div><span>${t(category)}</span><span class="v">${escapeHtml(valueText)}</span></div>`;
+      return `<div><span>${t(category)}</span><span class="v">${icon}${escapeHtml(valueText)}</span></div>`;
     }
 
     function configRow(category, catCfg, subMode, subOptions, players) {
@@ -1767,7 +1912,7 @@
                 <div class="option-chip ${sel && sel.category === category && sel.value === o ? "selected" : ""}"
                      draggable="true"
                      data-option-chip="${category}"
-                     data-option-value="${escapeHtml(o)}">${escapeHtml(translateOption(category, subMode, o))}</div>
+                     data-option-value="${escapeHtml(o)}">${optionIcon(category, subMode, o)}<span class="chip-label">${escapeHtml(translateOption(category, subMode, o))}</span></div>
               `).join("")}
             </div>
             <div class="manual-player-list">
@@ -1776,7 +1921,7 @@
           return `
                 <div class="manual-drop-zone ${assigned ? "filled" : ""}" data-manual-drop="${category}" data-player-id="${p.id}">
                   <span class="mpr-name">${escapeHtml(p.nickname)}</span>
-                  <span class="mpr-value">${assigned ? escapeHtml(translateOption(category, subMode, assigned)) : t('dropHere')}</span>
+                  <span class="mpr-value">${assigned ? optionIcon(category, subMode, assigned) + `<span>${escapeHtml(translateOption(category, subMode, assigned))}</span>` : `<span>${t('dropHere')}</span>`}</span>
                   ${assigned ? `<button type="button" class="mpr-clear" data-manual-clear="${category}" data-player-id="${p.id}" aria-label="${t('clearAssignment')}">×</button>` : ""}
                 </div>
               `;
@@ -1785,11 +1930,19 @@
           </div>
         `;
       } else if (isManual && !perPlayer) {
+        // Map is room-wide (not per-player), so it's just a single click
+        // to pick — no drag-and-drop needed. Clicking the already-chosen
+        // tile again clears it back to unset.
         valueArea = `
-          <select data-value-select="${category}">
-            <option value="">${t('choose')}</option>
-            ${options.map(o => `<option value="${escapeHtml(o)}" ${catCfg.value === o ? "selected" : ""}>${escapeHtml(translateOption(category, subMode, o))}</option>`).join("")}
-          </select>
+          <div class="map-picker" data-map-picker="${category}">
+            ${options.map(o => `
+              <button type="button"
+                      class="map-tile ${catCfg.value === o ? "selected" : ""}"
+                      data-map-option="${escapeHtml(o)}">
+                ${optionIcon(category, subMode, o)}<span class="chip-label">${escapeHtml(translateOption(category, subMode, o))}</span>
+              </button>
+            `).join("")}
+          </div>
         `;
       } else {
         valueArea = `<div class="hint" style="margin-top:0;">${category === "side" ? t('teamsBalanced') : t('rolledAtRandomize')}</div>`;
@@ -1830,9 +1983,17 @@
           btn.addEventListener("click", () => updateConfigSubMode(category, btn.dataset.sub));
         });
       });
-      document.querySelectorAll("[data-value-select]").forEach(sel => {
-        const category = sel.dataset.valueSelect;
-        sel.addEventListener("change", e => updateConfigValue(category, e.target.value));
+      document.querySelectorAll("[data-map-picker]").forEach(picker => {
+        const category = picker.dataset.mapPicker;
+        picker.querySelectorAll("[data-map-option]").forEach(tile => {
+          tile.addEventListener("click", () => {
+            const value = tile.dataset.mapOption;
+            const room = local.room;
+            // Clicking the already-selected tile toggles it back off.
+            const next = room.config[category].value === value ? "" : value;
+            updateConfigValue(category, next);
+          });
+        });
       });
       bindManualDnd();
       const randomizeBtn = document.getElementById("randomizeBtn");
@@ -1915,13 +2076,13 @@
       const sideLabel = p.side ? translateOption("side", null, p.side) : null;
 
       const rows = [
-        p.role ? `<div class="pr-row"><span class="pr-tag">${t('role')}</span><span class="pr-val">${escapeHtml(roleVal)}</span><span class="pr-sub">${escapeHtml(roleSub)}</span></div>` : "",
-        p.weapon ? `<div class="pr-row"><span class="pr-tag">${t('weapon')}</span><span class="pr-val">${escapeHtml(weaponVal)}</span><span class="pr-sub">${escapeHtml(weaponSub)}</span></div>` : ""
+        p.role ? `<div class="pr-row">${optionIcon("role", roleSubMode, p.role)}<span class="pr-tag">${t('role')}</span><span class="pr-val">${escapeHtml(roleVal)}</span><span class="pr-sub">${escapeHtml(roleSub)}</span></div>` : "",
+        p.weapon ? `<div class="pr-row">${optionIcon("weapon", weaponSubMode, p.weapon)}<span class="pr-tag">${t('weapon')}</span><span class="pr-val">${escapeHtml(weaponVal)}</span><span class="pr-sub">${escapeHtml(weaponSub)}</span></div>` : ""
       ].join("");
 
       return `
       <div class="player-result ${p.side ? "side-" + p.side.toLowerCase() : ""}">
-        <div class="pr-name">${escapeHtml(p.nickname)}${isYou ? `<span class="you-tag">${t('you')}</span>` : ""}${p.side ? `<span class="side-tag side-${p.side.toLowerCase()}">${escapeHtml(sideLabel)}</span>` : ""}</div>
+        <div class="pr-name">${escapeHtml(p.nickname)}${isYou ? `<span class="you-tag">${t('you')}</span>` : ""}${p.side ? `<span class="side-tag side-${p.side.toLowerCase()}">${optionIcon("side", null, p.side)}${escapeHtml(sideLabel)}</span>` : ""}</div>
         ${rows || `<div class="pr-row"><span class="pr-sub">${t('noCategoriesRolled')}</span></div>`}
       </div>
     `;
@@ -1964,7 +2125,7 @@
       <h3 style="color:var(--paper-dim); font-size:14px; letter-spacing:1.5px;">${t('resultIsIn')}</h3>
       <div class="ticket-rows" style="grid-template-columns: repeat(${r.map && sideEnabled ? 2 : 1}, 1fr);">
         ${sideEnabled ? `<div class="ticket-item" ${!r.map ? 'style="border-left:none; padding-left:0;"' : ""}><div class="tag">${t('teams')}</div><div class="val" style="font-size:17px;">${escapeHtml(sideSummary)}</div></div>` : ""}
-        ${r.map ? `<div class="ticket-item" ${!sideEnabled ? 'style="border-left:none; padding-left:0;"' : ""}><div class="tag">${t('map')}</div><div class="val">${escapeHtml(r.map)}</div></div>` : ""}
+        ${r.map ? `<div class="ticket-item" ${!sideEnabled ? 'style="border-left:none; padding-left:0;"' : ""}><div class="tag">${t('map')}</div><div class="val">${optionIcon("map", null, r.map)}${escapeHtml(translateOption("map", null, r.map))}</div></div>` : ""}
       </div>
     </div>
     ` : `<h3 style="color:var(--paper-dim); font-size:14px; letter-spacing:1.5px;">${t('resultIsIn')}</h3>`}
