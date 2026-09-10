@@ -628,6 +628,13 @@
       background: var(--panel);
     }
 
+    img.opt-icon-role {
+      border-color: var(--line);
+      object-fit: cover;
+      padding: 0;
+      background: var(--panel);
+    }
+
     /* ---- per-player manual assignment: drag-and-drop ---- */
     .manual-dnd-hint {
       font-size: 12px;
@@ -1191,6 +1198,10 @@
         const slug = agentImageSlug(value);
         return `<img class="opt-icon opt-icon-circle opt-icon-agent" src="images/agents/${slug}.webp" alt="${escapeHtml(value)}" aria-hidden="true">`;
       }
+      if (category === "role" && subMode === "role") {
+        const slug = roleImageSlug(value);
+        return `<img class="opt-icon opt-icon-circle opt-icon-role" src="images/roles/${slug}.webp" alt="${escapeHtml(value)}" aria-hidden="true">`;
+      }
       let shape, color;
       if (category === "side") {
         shape = "circle";
@@ -1218,6 +1229,12 @@
     function agentImageSlug(agent) {
       if (agent === "KAY/O") return "kay:o";
       return agent.toLowerCase();
+    }
+
+    // Maps a role name (Duelist, Initiator, Controller, Sentinel) to the
+    // filename (without extension) used under images/roles/.
+    function roleImageSlug(role) {
+      return role.toLowerCase();
     }
 
     function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
