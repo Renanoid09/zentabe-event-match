@@ -532,6 +532,13 @@
       border-top: none;
     }
 
+    /* The weapon row has no leading icon (unlike the role row), so pad it
+       by the icon's width + margin (20px + 6px) to keep the "Weapon" tag
+       text aligned under the "Role" tag text above it. */
+    .pr-row.pr-row-no-icon {
+      padding-left: 26px;
+    }
+
     .pr-tag {
       font-size: 11px;
       color: var(--paper-dim);
@@ -2090,7 +2097,7 @@
 
       const rows = [
         p.role ? `<div class="pr-row">${optionIcon("role", roleSubMode, p.role)}<span class="pr-tag">${t('role')}</span><span class="pr-val">${escapeHtml(roleVal)}</span><span class="pr-sub">${escapeHtml(roleSub)}</span></div>` : "",
-        p.weapon ? `<div class="pr-row">${optionIcon("weapon", weaponSubMode, p.weapon)}<span class="pr-tag">${t('weapon')}</span><span class="pr-val">${escapeHtml(weaponVal)}</span><span class="pr-sub">${escapeHtml(weaponSub)}</span></div>` : ""
+        p.weapon ? `<div class="pr-row pr-row-no-icon">${optionIcon("weapon", weaponSubMode, p.weapon)}<span class="pr-tag">${t('weapon')}</span><span class="pr-val">${escapeHtml(weaponVal)}</span><span class="pr-sub">${escapeHtml(weaponSub)}</span></div>` : ""
       ].join("");
 
       return `
