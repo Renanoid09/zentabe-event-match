@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Loadout Draw — Room</title>
+  <title>Valorant Randomizer — Room</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap');
 
@@ -426,6 +426,21 @@
       padding: 26px 22px;
     }
 
+    .ticket-map {
+      position: relative;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .ticket-map .tag {
+      color: rgba(255, 255, 255, 0.75) !important;
+    }
+
+    .ticket-map .val {
+      color: var(--paper);
+    }
+
     .ticket-rows {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -536,7 +551,7 @@
        by the icon's width + margin (20px + 6px) to keep the "Weapon" tag
        text aligned under the "Role" tag text above it. */
     .pr-row.pr-row-no-icon {
-      padding-left: 30px;
+      padding-left: 35px;
     }
 
     .pr-tag {
@@ -655,13 +670,26 @@
       margin: 0 0 8px;
     }
 
+    .manual-dnd-area {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 320px;
+      overflow-y: auto;
+      padding-right: 2px;
+      border: 1px dashed var(--line);
+      padding: 10px;
+    }
+
+    .manual-dnd-area.drag-over {
+      border-color: var(--red);
+      background: var(--red-dim);
+    }
+
     .manual-options-pool {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      margin-bottom: 10px;
-      padding-bottom: 10px;
-      border-bottom: 1px dashed var(--line);
     }
 
     .option-chip {
@@ -694,19 +722,51 @@
       opacity: 0.4;
     }
 
+    .pool-group-label {
+      flex: 0 0 100%;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--paper-dim);
+      margin: 6px 0 0;
+    }
+
+    .pool-group-label:first-child {
+      margin-top: 0;
+    }
+
     .manual-player-list {
       display: flex;
       flex-direction: column;
+      gap: 8px;
+    }
+
+    .manual-player-row {
+      border: 1px dashed var(--line);
+      padding: 8px;
+    }
+
+    .manual-player-row .mpr-name {
+      display: block;
+      font-size: 13px;
+      color: var(--paper-dim);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-bottom: 6px;
+    }
+
+    .mpr-slots {
+      display: flex;
+      flex-wrap: wrap;
       gap: 6px;
-      max-height: 260px;
-      overflow-y: auto;
-      padding-right: 2px;
     }
 
     .manual-drop-zone {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      flex: 1 1 140px;
       border: 1px dashed var(--line);
       padding: 6px 8px;
       cursor: pointer;
@@ -722,13 +782,11 @@
       background: var(--red-dim);
     }
 
-    .manual-drop-zone .mpr-name {
-      flex: 0 0 108px;
-      font-size: 13px;
+    .manual-drop-zone .mpr-cat-label {
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
       color: var(--paper-dim);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
 
     .manual-drop-zone .mpr-value {
@@ -975,6 +1033,8 @@
         off: "Off",
         byRole: "By role",
         byAgent: "By agent",
+        balancedMode: "Balanced",
+        trueRandomMode: "True random",
         byType: "By type",
         byWeapon: "By weapon",
         choose: "Choose…",
@@ -1002,7 +1062,9 @@
         anyWeaponOfType: "Any weapon of this type",
         dragHint: "Drag an option onto a player, or tap one then tap a player.",
         dropHere: "Drop here",
-        clearAssignment: "Clear"
+        clearAssignment: "Clear",
+        manualAssignments: "Manual assignments",
+        manualSetBelow: "Manual — set in the assignments panel below"
       },
       ja: {
         subtitle: "ルームを作成してコードを共有するか、ホストから受け取ったコードで参加してください。",
@@ -1044,6 +1106,8 @@
         off: "オフ",
         byRole: "ロール別",
         byAgent: "エージェント別",
+        balancedMode: "バランス型",
+        trueRandomMode: "完全ランダム",
         byType: "種類別",
         byWeapon: "武器別",
         choose: "選択…",
@@ -1071,7 +1135,9 @@
         anyWeaponOfType: "この種類の任意の武器",
         dragHint: "オプションをプレイヤーにドラッグするか、タップしてからプレイヤーをタップしてください。",
         dropHere: "ここにドロップ",
-        clearAssignment: "クリア"
+        clearAssignment: "クリア",
+        manualAssignments: "手動割り当て",
+        manualSetBelow: "手動 — 下の割り当てパネルで設定してください"
       },
       ko: {
         subtitle: "방을 만들어 코드를 공유하거나 호스트에게 받은 코드로 참가하세요.",
@@ -1113,6 +1179,8 @@
         off: "끄기",
         byRole: "역할별",
         byAgent: "요원별",
+        balancedMode: "밸런스",
+        trueRandomMode: "완전 무작위",
         byType: "종류별",
         byWeapon: "무기별",
         choose: "선택…",
@@ -1140,7 +1208,9 @@
         anyWeaponOfType: "이 종류의 임의 무기",
         dragHint: "옵션을 플레이어 위로 드래그하거나, 탭한 뒤 플레이어를 탭하세요.",
         dropHere: "여기에 놓기",
-        clearAssignment: "지우기"
+        clearAssignment: "지우기",
+        manualAssignments: "수동 배정",
+        manualSetBelow: "수동 — 아래 배정 패널에서 설정하세요"
       }
     };
 
@@ -1239,6 +1309,12 @@
       return role.toLowerCase();
     }
 
+    // Maps a map name (Ascent, Bind, Haven, ...) to the filename (without
+    // extension) used under images/maps/.
+    function mapImageSlug(map) {
+      return map.toLowerCase();
+    }
+
     function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
     function roomKey(code) { return "room:" + code; }
     function genCode() {
@@ -1252,7 +1328,7 @@
         // side/role/weapon: "manual" mode is assigned per player, via
         // manualValues keyed by player id. map stays a single room-wide value.
         side: { mode: "random", manualValues: {} },
-        role: { mode: "random", subMode: "role", manualValues: {} },
+        role: { mode: "random", subMode: "role", randomMode: "balanced", manualValues: {} },
         weapon: { mode: "random", subMode: "type", manualValues: {} },
         map: { mode: "random", value: null }
       };
@@ -1522,6 +1598,14 @@
       render();
     }
 
+    async function updateConfigRandomMode(category, randomMode) {
+      const room = local.room;
+      room.config[category].randomMode = randomMode;
+      await writeRoom(room);
+      local.room = room;
+      render();
+    }
+
     async function updateConfigValue(category, value) {
       const room = local.room;
       room.config[category].value = value;
@@ -1558,6 +1642,34 @@
         if (bag.length === 0) bag = shuffle(pool);
         out.push(bag.pop());
       }
+      return out;
+    }
+
+    // Balanced role assignment: guarantees each of the four combat roles
+    // (Duelist, Initiator, Controller, Sentinel) is represented at least
+    // once among the assignments (when there are at least 4 players in the
+    // draw). Any players beyond those four guaranteed slots get a fully
+    // random pick from the whole pool, same as true-random mode — so a
+    // full 5-player team gets one guaranteed player per role plus one
+    // wildcard random slot. Which players land the guaranteed slots is
+    // itself randomized. Works for both "by role" and "by agent" subModes:
+    // for "by agent", a random agent from the guaranteed role is picked.
+    function assignBalancedRoles(subMode, count) {
+      const roleNames = shuffle(Object.keys(DATA.roles));
+      const out = new Array(count);
+      const guaranteedCount = Math.min(count, roleNames.length);
+      const slotOrder = shuffle([...Array(count).keys()]);
+
+      for (let i = 0; i < guaranteedCount; i++) {
+        const role = roleNames[i];
+        out[slotOrder[i]] = subMode === "agent" ? pick(DATA.roles[role]) : role;
+      }
+
+      const pool = subMode === "agent" ? ALL_AGENTS : Object.keys(DATA.roles);
+      for (let i = guaranteedCount; i < count; i++) {
+        out[slotOrder[i]] = pick(pool);
+      }
+
       return out;
     }
 
@@ -1598,8 +1710,10 @@
 
       // Role: "Manual" lets the host assign each player's role/agent
       // individually (unassigned players get a random pick from the pool).
-      // Random = every player gets a different role/agent (cycling once the pool runs out).
-      // Off = excluded from the draw entirely.
+      // Random = every player gets a different role/agent (cycling once the
+      // pool runs out), OR — if randomMode is "balanced" — every one of the
+      // four roles is guaranteed at least once before any extra players get
+      // a fully random pick. Off = excluded from the draw entirely.
       let roleAssignments;
       result.roleSubMode = config.role.mode === "off" ? null : config.role.subMode;
       if (config.role.mode === "off") {
@@ -1608,6 +1722,8 @@
         const pool = config.role.subMode === "agent" ? ALL_AGENTS : Object.keys(DATA.roles);
         if (config.role.mode === "manual") {
           roleAssignments = players.map(p => (config.role.manualValues && config.role.manualValues[p.id]) || pick(pool));
+        } else if ((config.role.randomMode || "balanced") === "balanced") {
+          roleAssignments = assignBalancedRoles(config.role.subMode, players.length);
         } else {
           roleAssignments = assignDistinct(pool, players.length);
         }
@@ -1690,7 +1806,7 @@
         return;
       }
       if (!local.room) {
-        app.innerHTML = `<div class="masthead"><h1>LOADOUT <span>DRAW</span></h1>${langSwitcherHtml()}</div><p class="hint">${t('loadingRoom')}</p>`;
+        app.innerHTML = `<div class="masthead"><h1>VALORANT <span>RANDOMIZER</span></h1>${langSwitcherHtml()}</div><p class="hint">${t('loadingRoom')}</p>`;
         bindLangSwitch();
         return;
       }
@@ -1702,7 +1818,7 @@
 
       app.innerHTML = `
     <div class="masthead">
-      <h1>LOADOUT <span>DRAW</span></h1>
+      <h1>VALORANT <span>RANDOMIZER</span></h1>
       <p>${t('roomLabel')} <strong style="color:var(--paper)">${local.room.code}</strong> · ${t('playersCount', local.room.players.length, MAX_PLAYERS)} ${local.isHost ? "· " + t('youAreHost') : ""}</p>
       ${langSwitcherHtml()}
     </div>
@@ -1717,7 +1833,7 @@
     function renderLanding() {
       return `
     <div class="masthead">
-      <h1>LOADOUT <span>DRAW</span></h1>
+      <h1>VALORANT <span>RANDOMIZER</span></h1>
       <p>${t('subtitle')}</p>
       ${langSwitcherHtml()}
     </div>
@@ -1882,14 +1998,76 @@
       ${configRow("side", cfg.side, null, null, room.players)}
       ${configRow("role", cfg.role, cfg.role.subMode, [
         { key: "role", labelKey: "byRole" }, { key: "agent", labelKey: "byAgent" }
-      ], room.players)}
+      ], room.players, [
+        { key: "balanced", labelKey: "balancedMode" }, { key: "trueRandom", labelKey: "trueRandomMode" }
+      ])}
       ${configRow("weapon", cfg.weapon, cfg.weapon.subMode, [
         { key: "type", labelKey: "byType" }, { key: "weapon", labelKey: "byWeapon" }
       ], room.players)}
       ${configRow("map", cfg.map, null, null, null)}
+      ${manualAssignmentPanel(cfg, room.players)}
       <button class="btn" id="randomizeBtn" style="margin-top:16px;">${t('randomizeBtn')}</button>
     </div>
   `;
+    }
+
+    // Single unified drag-and-drop area covering every per-player category
+    // currently set to Manual (side / role / weapon). Instead of a separate
+    // pool + drop zone per category, all manual options live in one pool
+    // (grouped by category) and each player gets one row with one slot per
+    // active category — so everything is dragged into the same place.
+    function manualAssignmentPanel(cfg, players) {
+      const PER_PLAYER_CATEGORIES = [
+        { category: "side", subMode: null },
+        { category: "role", subMode: cfg.role.subMode },
+        { category: "weapon", subMode: cfg.weapon.subMode }
+      ];
+      const active = PER_PLAYER_CATEGORIES.filter(c => cfg[c.category].mode === "manual");
+      if (!active.length) return "";
+
+      const sel = local.selectedChip;
+
+      const poolHtml = active.map(({ category, subMode }) => {
+        const options = categoryOptionsFor(category, subMode);
+        return `
+          <div class="pool-group-label">${t(category)}</div>
+          ${options.map(o => `
+            <div class="option-chip ${sel && sel.category === category && sel.value === o ? "selected" : ""}"
+                 draggable="true"
+                 data-option-chip="${category}"
+                 data-option-value="${escapeHtml(o)}">${optionIcon(category, subMode, o)}<span class="chip-label">${escapeHtml(translateOption(category, subMode, o))}</span></div>
+          `).join("")}
+        `;
+      }).join("");
+
+      const rowsHtml = players.map(p => `
+        <div class="manual-player-row">
+          <span class="mpr-name">${escapeHtml(p.nickname)}</span>
+          <div class="mpr-slots">
+            ${active.map(({ category, subMode }) => {
+        const assigned = (cfg[category].manualValues || {})[p.id];
+        return `
+                <div class="manual-drop-zone ${assigned ? "filled" : ""}" data-manual-drop="${category}" data-player-id="${p.id}">
+                  <span class="mpr-cat-label">${t(category)}</span>
+                  <span class="mpr-value">${assigned ? optionIcon(category, subMode, assigned) + `<span>${escapeHtml(translateOption(category, subMode, assigned))}</span>` : `<span>${t('dropHere')}</span>`}</span>
+                  ${assigned ? `<button type="button" class="mpr-clear" data-manual-clear="${category}" data-player-id="${p.id}" aria-label="${t('clearAssignment')}">×</button>` : ""}
+                </div>
+              `;
+      }).join("")}
+          </div>
+        </div>
+      `).join("");
+
+      return `
+        <div class="panel" style="--accent:var(--teal); margin-top:16px;">
+          <h3 style="margin-bottom:6px;">${t('manualAssignments')}</h3>
+          <p class="manual-dnd-hint">${t('dragHint')}</p>
+          <div class="manual-dnd-area">
+            <div class="manual-options-pool">${poolHtml}</div>
+            <div class="manual-player-list">${rowsHtml}</div>
+          </div>
+        </div>
+      `;
     }
 
     function configSummaryLine(category, catCfg, subMode) {
@@ -1906,49 +2084,32 @@
         }
       } else if (category === "side") {
         valueText = t('randomBalanced');
+      } else if (category === "role") {
+        const base = subMode === "agent" ? t('randomIndividual') : t('randomCategory');
+        const modeLabel = (catCfg.randomMode || "balanced") === "balanced" ? t('balancedMode') : t('trueRandomMode');
+        valueText = `${base} — ${modeLabel}`;
       } else {
         valueText = subMode ? (subMode === "agent" || subMode === "weapon" ? t('randomIndividual') : t('randomCategory')) : t('random');
       }
       return `<div><span>${t(category)}</span><span class="v">${icon}${escapeHtml(valueText)}</span></div>`;
     }
 
-    function configRow(category, catCfg, subMode, subOptions, players) {
+    function configRow(category, catCfg, subMode, subOptions, players, randomModeOptions) {
       const options = categoryOptionsFor(category, subMode);
       const isOff = catCfg.mode === "off";
       const isManual = catCfg.mode === "manual";
+      const isRandom = catCfg.mode === "random";
       const perPlayer = category !== "map"; // side/role/weapon assign per player; map is room-wide
 
       let valueArea;
       if (isOff) {
         valueArea = `<div class="hint" style="margin-top:0;">${t('notIncluded')}</div>`;
       } else if (isManual && perPlayer) {
-        const manualValues = catCfg.manualValues || {};
-        const sel = local.selectedChip;
-        valueArea = `
-          <div class="manual-dnd" data-manual-dnd="${category}">
-            <p class="manual-dnd-hint">${t('dragHint')}</p>
-            <div class="manual-options-pool">
-              ${options.map(o => `
-                <div class="option-chip ${sel && sel.category === category && sel.value === o ? "selected" : ""}"
-                     draggable="true"
-                     data-option-chip="${category}"
-                     data-option-value="${escapeHtml(o)}">${optionIcon(category, subMode, o)}<span class="chip-label">${escapeHtml(translateOption(category, subMode, o))}</span></div>
-              `).join("")}
-            </div>
-            <div class="manual-player-list">
-              ${players.map(p => {
-          const assigned = manualValues[p.id];
-          return `
-                <div class="manual-drop-zone ${assigned ? "filled" : ""}" data-manual-drop="${category}" data-player-id="${p.id}">
-                  <span class="mpr-name">${escapeHtml(p.nickname)}</span>
-                  <span class="mpr-value">${assigned ? optionIcon(category, subMode, assigned) + `<span>${escapeHtml(translateOption(category, subMode, assigned))}</span>` : `<span>${t('dropHere')}</span>`}</span>
-                  ${assigned ? `<button type="button" class="mpr-clear" data-manual-clear="${category}" data-player-id="${p.id}" aria-label="${t('clearAssignment')}">×</button>` : ""}
-                </div>
-              `;
-        }).join("")}
-            </div>
-          </div>
-        `;
+        // Assignment itself now happens in the single unified panel
+        // (manualAssignmentPanel) shared by every per-player category, so
+        // this row just points there instead of embedding its own
+        // drag-and-drop area.
+        valueArea = `<div class="hint" style="margin-top:0;">${t('manualSetBelow')}</div>`;
       } else if (isManual && !perPlayer) {
         // Map is room-wide (not per-player), so it's just a single click
         // to pick — no drag-and-drop needed. Clicking the already-chosen
@@ -1982,6 +2143,11 @@
             ${subOptions.map(o => `<button data-sub="${o.key}" class="${subMode === o.key ? "active" : ""}">${t(o.labelKey)}</button>`).join("")}
           </div>
         ` : ""}
+        ${randomModeOptions && isRandom ? `
+          <div class="mini-toggle" data-randommode-toggle="${category}" style="margin-top:6px;">
+            ${randomModeOptions.map(o => `<button data-randommode="${o.key}" class="${(catCfg.randomMode || randomModeOptions[0].key) === o.key ? "active" : ""}">${t(o.labelKey)}</button>`).join("")}
+          </div>
+        ` : ""}
       </div>
       <div>
         ${valueArea}
@@ -2001,6 +2167,12 @@
         const category = group.dataset.subToggle;
         group.querySelectorAll("button").forEach(btn => {
           btn.addEventListener("click", () => updateConfigSubMode(category, btn.dataset.sub));
+        });
+      });
+      document.querySelectorAll("[data-randommode-toggle]").forEach(group => {
+        const category = group.dataset.randommodeToggle;
+        group.querySelectorAll("button").forEach(btn => {
+          btn.addEventListener("click", () => updateConfigRandomMode(category, btn.dataset.randommode));
         });
       });
       document.querySelectorAll("[data-map-picker]").forEach(picker => {
@@ -2138,7 +2310,7 @@
 
       return `
     ${r.map ? `
-    <div class="ticket">
+    <div class="ticket ticket-map" style="background-image: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.75) 100%), url('images/maps/${mapImageSlug(r.map)}.webp');">
       <h3 class="result-heading">${t('resultIsIn')}</h3>
       <div class="ticket-rows" style="grid-template-columns: 1fr;">
         <div class="ticket-item" style="border-left:none; padding-left:0;"><div class="tag">${t('map')}</div><div class="val">${optionIcon("map", null, r.map)}${escapeHtml(translateOption("map", null, r.map))}</div></div>
