@@ -968,7 +968,7 @@
       roles: {
         "Duelist": ["Jett", "Phoenix", "Reyna", "Raze", "Yoru", "Neon", "Iso", "Waylay"],
         "Initiator": ["Sova", "Breach", "Skye", "KAY/O", "Fade", "Gekko", "Tejo"],
-        "Controller": ["Brimstone", "Viper", "Omen", "Astra", "Harbor", "Clove"],
+        "Controller": ["Brimstone", "Viper", "Omen", "Astra", "Harbor", "Clove", "Miks"],
         "Sentinel": ["Killjoy", "Cypher", "Sage", "Chamber", "Deadlock", "Vyse"]
       },
       weaponTypes: {
@@ -1237,9 +1237,9 @@
     // translating the meaning — so that's what these do too. "en" entries
     // are identity mappings, kept for a uniform lookup shape.
     const AGENT_LABELS = {
-      en: { Jett: "Jett", Phoenix: "Phoenix", Reyna: "Reyna", Raze: "Raze", Yoru: "Yoru", Neon: "Neon", Iso: "Iso", Waylay: "Waylay", Sova: "Sova", Breach: "Breach", Skye: "Skye", "KAY/O": "KAY/O", Fade: "Fade", Gekko: "Gekko", Tejo: "Tejo", Brimstone: "Brimstone", Viper: "Viper", Omen: "Omen", Astra: "Astra", Harbor: "Harbor", Clove: "Clove", Killjoy: "Killjoy", Cypher: "Cypher", Sage: "Sage", Chamber: "Chamber", Deadlock: "Deadlock", Vyse: "Vyse" },
-      ja: { Jett: "ジェット", Phoenix: "フェニックス", Reyna: "レイナ", Raze: "レイズ", Yoru: "ヨル", Neon: "ネオン", Iso: "アイソ", Waylay: "ウェイレイ", Sova: "ソーヴァ", Breach: "ブリーチ", Skye: "スカイ", "KAY/O": "ケイオー", Fade: "フェイド", Gekko: "ゲッコー", Tejo: "テホ", Brimstone: "ブリムストーン", Viper: "ヴァイパー", Omen: "オーメン", Astra: "アストラ", Harbor: "ハーバー", Clove: "クローヴ", Killjoy: "キルジョイ", Cypher: "サイファー", Sage: "セージ", Chamber: "チェンバー", Deadlock: "デッドロック", Vyse: "ヴァイス" },
-      ko: { Jett: "제트", Phoenix: "피닉스", Reyna: "레이나", Raze: "레이즈", Yoru: "요루", Neon: "네온", Iso: "아이소", Waylay: "웨이레이", Sova: "소바", Breach: "브리치", Skye: "스카이", "KAY/O": "케이오", Fade: "페이드", Gekko: "게코", Tejo: "테호", Brimstone: "브림스톤", Viper: "바이퍼", Omen: "오멘", Astra: "아스트라", Harbor: "하버", Clove: "클로브", Killjoy: "킬조이", Cypher: "사이퍼", Sage: "세이지", Chamber: "체임버", Deadlock: "데드록", Vyse: "바이스" }
+      en: { Jett: "Jett", Phoenix: "Phoenix", Reyna: "Reyna", Raze: "Raze", Yoru: "Yoru", Neon: "Neon", Iso: "Iso", Waylay: "Waylay", Sova: "Sova", Breach: "Breach", Skye: "Skye", "KAY/O": "KAY/O", Fade: "Fade", Gekko: "Gekko", Tejo: "Tejo", Miks: "Miks", Brimstone: "Brimstone", Viper: "Viper", Omen: "Omen", Astra: "Astra", Harbor: "Harbor", Clove: "Clove", Killjoy: "Killjoy", Cypher: "Cypher", Sage: "Sage", Chamber: "Chamber", Deadlock: "Deadlock", Vyse: "Vyse" },
+      ja: { Jett: "ジェット", Phoenix: "フェニックス", Reyna: "レイナ", Raze: "レイズ", Yoru: "ヨル", Neon: "ネオン", Iso: "アイソ", Waylay: "ウェイレイ", Sova: "ソーヴァ", Breach: "ブリーチ", Skye: "スカイ", "KAY/O": "ケイオー", Fade: "フェイド", Gekko: "ゲッコー", Tejo: "テホ", Miks: "ミクス", Brimstone: "ブリムストーン", Viper: "ヴァイパー", Omen: "オーメン", Astra: "アストラ", Harbor: "ハーバー", Clove: "クローヴ", Killjoy: "キルジョイ", Cypher: "サイファー", Sage: "セージ", Chamber: "チェンバー", Deadlock: "デッドロック", Vyse: "ヴァイス" },
+      ko: { Jett: "제트", Phoenix: "피닉스", Reyna: "레이나", Raze: "레이즈", Yoru: "요루", Neon: "네온", Iso: "아이소", Waylay: "웨이레이", Sova: "소바", Breach: "브리치", Skye: "스카이", "KAY/O": "케이오", Fade: "페이드", Gekko: "게코", Tejo: "테호", Miks: "믹스", Brimstone: "브림스톤", Viper: "바이퍼", Omen: "오멘", Astra: "아스트라", Harbor: "하버", Clove: "클로브", Killjoy: "킬조이", Cypher: "사이퍼", Sage: "세이지", Chamber: "체임버", Deadlock: "데드록", Vyse: "바이스" }
     };
     const WEAPON_LABELS = {
       en: { Classic: "Classic", Shorty: "Shorty", Frenzy: "Frenzy", Ghost: "Ghost", Sheriff: "Sheriff", Stinger: "Stinger", Spectre: "Spectre", Bucky: "Bucky", Judge: "Judge", Bulldog: "Bulldog", Guardian: "Guardian", Phantom: "Phantom", Vandal: "Vandal", Marshal: "Marshal", Outlaw: "Outlaw", Operator: "Operator", Ares: "Ares", Odin: "Odin" },
