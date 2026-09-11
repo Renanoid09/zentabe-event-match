@@ -5,7 +5,11 @@
   <meta charset="UTF-8">
   <title>Valorant Randomizer — Room</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap');
+    /* Only the weights actually used anywhere in this file are requested
+       here (Oswald 600 only; Rajdhani 400 + 600) — previously this pulled
+       all four weights (400/500/600/700) of both families, i.e. roughly
+       twice as many font files as ever get rendered. */
+    @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600&family=Rajdhani:wght@400;600&display=swap');
 
     :root {
       --ink: #0E1013;
@@ -481,7 +485,7 @@
     .ticket-item .val {
       font-family: 'Oswald', sans-serif;
       font-size: 22px;
-      font-weight: 500;
+      font-weight: 600;
     }
 
     .ticket-item .sub {
@@ -564,7 +568,7 @@
 
     .pr-val {
       font-family: 'Oswald', sans-serif;
-      font-weight: 500;
+      font-weight: 600;
       font-size: 15px;
       white-space: nowrap;
       flex-shrink: 0;
@@ -622,7 +626,7 @@
       height: 20px;
       margin-right: 6px;
       font-family: 'Rajdhani', sans-serif;
-      font-weight: 700;
+      font-weight: 600;
       font-size: 9px;
       letter-spacing: 0;
       background: var(--panel);
@@ -961,6 +965,17 @@
     const SUPABASE_ANON_KEY = "sb_publishable_L5-CFrPnH6WJLkJUv1jBKg_QpyK0ghl";
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // Live updates for whoever's in the room right now come from a Realtime
+    // subscription (a single long-lived websocket that only sends a message
+    // when the row actually changes) rather than from repeatedly asking the
+    // server "anything new?" over plain HTTP. `realtimeChannel` is the
+    // current subscription, if any. A slow interval poll still runs
+    // alongside it as a safety net (covers the rare dropped/undelivered
+    // realtime message, and rooms where Realtime isn't enabled on the
+    // table), but at a small fraction of the old request rate — see
+    // startPolling()/stopPolling() below.
+    let realtimeChannel = null;
+
     /* ---------------- data ---------------- */
     const DATA = {
       sides: ["Attacker", "Defender"],
@@ -1286,11 +1301,11 @@
       if (!value) return "";
       if (category === "role" && subMode === "agent") {
         const slug = agentImageSlug(value);
-        return `<img class="opt-icon opt-icon-circle opt-icon-agent" src="images/agents/${slug}.webp" alt="${escapeHtml(value)}" aria-hidden="true">`;
+        return `<img class="opt-icon opt-icon-circle opt-icon-agent" src="images/agents/${slug}.webp" alt="${escapeHtml(value)}" aria-hidden="true" loading="lazy" decoding="async">`;
       }
       if (category === "role" && subMode === "role") {
         const slug = roleImageSlug(value);
-        return `<img class="opt-icon opt-icon-circle opt-icon-role" src="images/roles/${slug}.webp" alt="${escapeHtml(value)}" aria-hidden="true">`;
+        return `<img class="opt-icon opt-icon-circle opt-icon-role" src="images/roles/${slug}.webp" alt="${escapeHtml(value)}" aria-hidden="true" loading="lazy" decoding="async">`;
       }
       return "";
     }
@@ -1560,13 +1575,67 @@
       if (room) local.room = room;
     }
 
+    // Fallback poll interval while a realtime subscription is active. Kept
+    // deliberately slow (and paused entirely while the tab is hidden, see
+    // handleVisibilityChange) since its only job is to catch anything the
+    // websocket missed, not to be the main sync path.
+    const FALLBACK_POLL_MS = 12000;
+
     function startPolling() {
-      if (local.pollTimer) clearInterval(local.pollTimer);
+      stopPolling();
+      subscribeRealtime(local.roomCode);
       local.pollTimer = setInterval(async () => {
+        if (document.hidden) return; // handled by resuming on visibilitychange instead
         await refreshRoom();
         render();
-      }, 1800);
+      }, FALLBACK_POLL_MS);
     }
+
+    function stopPolling() {
+      if (local.pollTimer) { clearInterval(local.pollTimer); local.pollTimer = null; }
+      unsubscribeRealtime();
+    }
+
+    // Opens (or replaces) the websocket subscription for `code`'s row in
+    // the `rooms` table. Requires Realtime to be enabled for that table on
+    // the Supabase project (Database → Replication); if it isn't, this
+    // simply never fires and the fallback poll above keeps things in sync,
+    // just less immediately.
+    function subscribeRealtime(code) {
+      unsubscribeRealtime();
+      if (!code) return;
+      realtimeChannel = supabase
+        .channel(`room-updates-${code}`)
+        .on("postgres_changes",
+          { event: "*", schema: "public", table: "rooms", filter: `code=eq.${code}` },
+          payload => {
+            const incoming = payload.new && payload.new.data;
+            if (!incoming) return;
+            local.room = incoming;
+            render();
+          }
+        )
+        .subscribe();
+    }
+
+    function unsubscribeRealtime() {
+      if (realtimeChannel) {
+        supabase.removeChannel(realtimeChannel);
+        realtimeChannel = null;
+      }
+    }
+
+    // While the tab is hidden (backgrounded, minimized, screen off) the
+    // fallback interval above is a no-op, so nothing is downloaded at all.
+    // The moment it becomes visible again, do one immediate refresh — this
+    // covers a websocket that quietly dropped while asleep — and let the
+    // interval resume normally from there.
+    function handleVisibilityChange() {
+      if (!document.hidden && local.pollTimer && local.roomCode) {
+        refreshRoom().then(render);
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     async function goToConfig() {
       if (!local.isHost) return;
@@ -1779,8 +1848,7 @@
     }
 
     function leaveRoom() {
-      if (local.pollTimer) clearInterval(local.pollTimer);
-      local.pollTimer = null;
+      stopPolling();
       if (local.roomCode) clearStoredPlayerId(local.roomCode);
       clearActiveRoomCode();
       local.screen = "landing";
